@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Perron Screen Test</title>
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; }
+    .wrap {
+      height: 100vh; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; gap: 24px;
+      padding: 48px; box-sizing: border-box; text-align: center;
+    }
+    h1 { font-size: 64px; margin: 0; }
+    .row { font-size: 36px; }
+    .small { font-size: 24px; opacity: 0.8; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Het Perron — Screen Test</h1>
+    <div class="row" id="clock">tijd…</div>
+    <div class="row">✅ Als je dit ziet op tv: URL werkt</div>
+    <div class="small">Auto-refresh elke 5 minuten</div>
+  </div>
+
+  <script>
+    function tick(){
+      const d = new Date();
+      document.getElementById("clock").textContent =
+        d.toLocaleString("nl-BE", { weekday:"long", year:"numeric", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" });
+    }
+    tick();
+    setInterval(tick, 1000);
+
+    // auto-refresh (handig tegen browser "vastlopers")
+    setTimeout(() => location.reload(), 5 * 60 * 1000);
+  </script>
+</body>
+</html>
