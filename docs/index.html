@@ -71,11 +71,13 @@
       gap:16px;
       min-width:0;
     }
-    .logo{
-      height:52px;
-      width:auto;
-      display:block;
-    }
+   .logo{
+  height:52px;
+  width:auto;
+  max-width:520px;   /* voorkomt dat hij te breed wordt */
+  object-fit:contain;
+  display:block;
+}
     .title{
       font-size:84px;
       line-height:0.95;
