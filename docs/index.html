@@ -1,472 +1,547 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="nl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Het Perron — Screen (Portrait)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Het Perron — Narrowcasting</title>
 
   <style>
     :root{
-      /* Huisstijl (basis) */
-      --perron-blue: #123d9c;
-      --ink: #111111;
-      --muted: rgba(17,17,17,.72);
-      --line: rgba(17,17,17,.10);
+      --brand-blue:#1242A8;
+      --bg:#ffffff;
+      --card:#ffffff;
+      --border:#E6E6E6;
+      --muted:#6B6B6B;
+      --text:#111111;
 
-      /* Accentkleuren (subtiel) */
-      --accent-now: #e3e314;   /* geel */
-      --accent-next: #e570c2;  /* roze */
-      --accent-ok: #eaf2ff;    /* zacht blauw vlak */
+      --pill-now:#DDEB00;     /* geelgroen */
+      --pill-next:#F08AD8;    /* roze */
+      --pill-text:#111111;
 
-      /* Layout */
-      --pad: 56px;
-      --radius: 32px;
+      --r-xl:34px;
+      --r-lg:22px;
+      --r-md:16px;
 
-      /* TV-leesbaarheid (portrait) */
-      --font-base: 30px;
-      --font-small: 22px;
-      --font-large: 40px;
-      --font-xlarge: 72px;
-      --font-xxlarge: 86px;
+      --pad:54px;
     }
 
-    html, body{
-      width:100vw;
-      height:100vh;
-    }
-
+    *{ box-sizing:border-box; }
     body{
       margin:0;
-      font-family: Arial, sans-serif;
-      background:#ffffff;
-      color: var(--ink);
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      background:#111; /* buiten het canvas */
+      color:var(--text);
       overflow:hidden;
-      font-size: var(--font-base);
     }
 
-    /* Elke "screen" is full page */
+    /* === 9:16 portrait canvas === */
+    .stage{
+      width:1080px;
+      height:1920px;
+      background:var(--bg);
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%) scale(var(--scale,1));
+      transform-origin:center;
+      overflow:hidden;
+    }
+
     .screen{
-      position:fixed;
-      inset:0;
+      width:100%;
+      height:100%;
       padding: var(--pad);
-      box-sizing:border-box;
       display:none;
     }
     .screen.active{ display:block; }
 
-    /* Headerbalk */
+    /* Header */
     .header{
-      background: var(--perron-blue);
-      color:#fff;
-      border-radius: var(--radius);
-      padding: 28px 28px;
-      margin-bottom: 22px;
+      background:var(--brand-blue);
+      border-radius: var(--r-xl);
+      padding:42px;
       display:flex;
       align-items:flex-end;
       justify-content:space-between;
-      gap: 16px;
+      color:#fff;
     }
-
-    .header h1{
-      margin:0;
-      font-size: var(--font-xlarge);
-      font-weight: 900;
-      letter-spacing: -0.02em;
-      line-height: 1.0;
-    }
-
-    .header .meta{
-      text-align:right;
-      font-size: var(--font-small);
-      opacity: .9;
-      line-height: 1.2;
-      white-space: nowrap;
-    }
-
-    .muted{ opacity:.72; }
-
-    .card{
-      border: 2px solid var(--line);
-      border-radius: var(--radius);
-      padding: 26px;
-      box-sizing: border-box;
-      background:#fff;
-    }
-
-    /* Planning layout (portrait): 2 blokken boven elkaar */
-    .planning-wrap{
+    .header-left{
       display:flex;
       flex-direction:column;
-      gap: 18px;
-      height: calc(100vh - (var(--pad) * 2) - 170px); /* header + statusruimte */
+      gap:16px;
+      min-width:0;
+    }
+    .logo{
+      height:52px;
+      width:auto;
+      display:block;
+    }
+    .title{
+      font-size:84px;
+      line-height:0.95;
+      font-weight:800;
+      letter-spacing:-1px;
+      margin:0;
+      white-space:nowrap;
+    }
+    .header-right{
+      text-align:right;
+      font-size:30px;
+      line-height:1.15;
+      opacity:.95;
+      min-width:260px;
+      margin-left:24px;
+    }
+    .header-right .date{
+      font-weight:800;
+    }
+    .header-right .meta{
+      opacity:.9;
     }
 
-    /* Lokalen grid: 2 kolommen, meerdere rijen */
-    .rooms{
+    /* Grid of rooms */
+    .grid{
+      margin-top:36px;
       display:grid;
       grid-template-columns: 1fr 1fr;
-      gap: 18px;
-      flex: 1 1 auto;
+      gap:26px;
+    }
+
+    .room-card{
+      background:var(--card);
+      border:2px solid var(--border);
+      border-radius: var(--r-lg);
+      padding:22px;
       min-height: 0;
     }
 
-    .room{
-      border: 2px solid var(--line);
-      border-radius: 28px;
-      padding: 20px;
-      background: #fff;
+    .room-head{
       display:flex;
-      flex-direction:column;
-      gap: 14px;
-      min-height: 0;
-    }
-
-    .room-top{
-      display:flex;
-      align-items:baseline;
+      align-items:flex-start;
       justify-content:space-between;
-      gap: 12px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid var(--line);
+      gap:10px;
+      margin-bottom:18px;
     }
-
     .room-name{
-      font-weight: 900;
-      font-size: 1.1em;
-      letter-spacing: -0.01em;
-    }
-
-    .room-state{
-      font-size: var(--font-small);
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: var(--accent-ok);
-      border: 1px solid rgba(18,61,156,.18);
-      color: var(--perron-blue);
-      font-weight: 800;
-      white-space: nowrap;
+      font-size:44px;
+      line-height:1.05;
+      font-weight:800;
+      margin:0;
+      letter-spacing:-0.5px;
     }
 
     .slot{
+      border:2px solid var(--border);
+      border-radius: var(--r-md);
+      padding:16px 16px 18px 16px;
+      margin-top:14px;
+      min-height: 168px;
       display:flex;
       flex-direction:column;
-      gap: 6px;
-      padding: 14px;
-      border-radius: 22px;
-      border: 2px solid var(--line);
+      justify-content:flex-start;
+      gap:10px;
     }
 
-    .slot.now{ border-color: rgba(0,0,0,.08); }
-    .slot.next{ border-color: rgba(0,0,0,.08); }
-
-    .badge{
-      display:inline-block;
-      font-size: 18px;
-      font-weight: 900;
-      letter-spacing: .10em;
-      text-transform: uppercase;
-      padding: 8px 12px;
-      border-radius: 999px;
-      width: fit-content;
+    .pill{
+      align-self:flex-start;
+      font-weight:900;
+      letter-spacing:1px;
+      font-size:22px;
+      padding:8px 16px;
+      border-radius:999px;
+      color:var(--pill-text);
+      text-transform:uppercase;
     }
-    .badge.now{ background: var(--accent-now); color: #000; }
-    .badge.next{ background: var(--accent-next); color: #000; }
+    .pill.now{ background:var(--pill-now); }
+    .pill.next{ background:var(--pill-next); }
 
     .time{
-      font-weight: 900;
-      font-size: 1.05em;
-      letter-spacing: -0.01em;
-    }
-
-    .what{
-      font-size: 0.95em;
-      color: var(--muted);
-      line-height: 1.2;
-    }
-
-    /* Onderste status */
-    .status{
-      position:fixed;
-      left: var(--pad);
-      bottom: 22px;
-      font-size: 18px;
-      opacity:.55;
-    }
-
-    /* Agenda basis (laten we voorlopig sober) */
-    .title{
-      font-size: var(--font-xlarge);
-      font-weight: 900;
-      margin: 0 0 18px 0;
-      line-height: 1.05;
-      letter-spacing: -0.02em;
-    }
-    .subtitle{
-      font-size: var(--font-small);
-      opacity: .7;
-      margin: 0 0 22px 0;
-    }
-    .row{
-      display:flex;
-      justify-content:space-between;
-      align-items:baseline;
-      gap: 28px;
-      font-size: 1.2em;
-      padding: 16px 0;
-      border-bottom: 1px solid var(--line);
-    }
-    .fill{
-      height: calc(100vh - (var(--pad) * 2) - 140px);
-    }
-
-    /* Promo (ongewijzigd, wel netjes) */
-    .promo-slide{
-      position:absolute;
-      inset:0;
-      padding: var(--pad);
-      box-sizing:border-box;
-      display:none;
-    }
-    .promo-slide.active{ display:block; }
-
-    .promo-wrap{
-      height: calc(100vh - (var(--pad) * 2));
-      border-radius: 40px;
-      padding: 64px 52px;
-      box-sizing:border-box;
-      display:flex;
-      flex-direction:column;
-      gap: 28px;
-      border: 2px solid var(--line);
-    }
-    .promo-kicker{
-      font-size: var(--font-small);
-      letter-spacing:.10em;
-      text-transform:uppercase;
-      opacity:.85;
+      font-size:52px;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:-0.5px;
       margin:0;
     }
-    .promo-title{
-      font-size: 92px;
-      font-weight: 900;
-      margin: 0;
-      line-height: 1.0;
-      letter-spacing: -0.02em;
+    .name{
+      font-size:34px;
+      line-height:1.12;
+      color:#2B2B2B;
+      margin:0;
+      word-break:break-word;
     }
-    .promo-meta{
-      font-size: var(--font-large);
-      opacity:.92;
-      margin: 0;
-      margin-top: auto;
+
+    .slot.empty .pill{ opacity:.28; }
+    .slot.empty .time,
+    .slot.empty .name{ opacity:.22; }
+
+    /* Placeholder screens */
+    .placeholder{
+      margin-top:42px;
+      border:2px dashed #D0D0D0;
+      border-radius:26px;
+      height: 1460px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#8a8a8a;
+      font-size:34px;
+      text-align:center;
+      padding:30px;
     }
   </style>
 </head>
 
 <body>
+  <div class="stage" id="stage">
 
-  <!-- SCREEN 1: ZAALPLANNING -->
-  <section class="screen active" id="screen-planning">
-    <div class="header">
-      <h1>Zaalplanning</h1>
-      <div class="meta">
-        <div id="clockTop">—</div>
-        <div class="muted">Testdata · later Yesplan</div>
-      </div>
-    </div>
-
-    <div class="planning-wrap">
-
-      <!-- Lokalen grid -->
-      <div class="rooms">
-
-        <div class="room">
-          <div class="room-top">
-            <div class="room-name">Theaterzaal</div>
-            <div class="room-state">OK</div>
-          </div>
-
-          <div class="slot now">
-            <span class="badge now">NU</span>
-            <div class="time">10:00–12:00</div>
-            <div class="what">Workshop · Dans</div>
-          </div>
-
-          <div class="slot next">
-            <span class="badge next">STRAX</span>
-            <div class="time">12:30–14:00</div>
-            <div class="what">Repetitie · Techniek</div>
-          </div>
+    <!-- SCREEN 1: ZAALPLANNING -->
+    <section class="screen active" id="screen-planning">
+      <div class="header">
+        <div class="header-left">
+          <img class="logo" src="docs/assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
+          <h1 class="title">Zaalplanning</h1>
         </div>
-
-        <div class="room">
-          <div class="room-top">
-            <div class="room-name">Filmzaal</div>
-            <div class="room-state">OK</div>
-          </div>
-
-          <div class="slot now">
-            <span class="badge now">NU</span>
-            <div class="time">11:00–12:00</div>
-            <div class="what">Schoolvoorstelling</div>
-          </div>
-
-          <div class="slot next">
-            <span class="badge next">STRAX</span>
-            <div class="time">13:00–15:00</div>
-            <div class="what">Opbouw · Film</div>
-          </div>
+        <div class="header-right">
+          <div class="date" id="todayLabel">—</div>
+          <div class="meta" id="pageLabel">—</div>
         </div>
+      </div>
 
-        <div class="room">
-          <div class="room-top">
-            <div class="room-name">Studio</div>
-            <div class="room-state">OK</div>
-          </div>
+      <div class="grid" id="roomsGrid"></div>
+    </section>
 
-          <div class="slot now">
-            <span class="badge now">NU</span>
-            <div class="time">12:30–14:00</div>
-            <div class="what">Repetitie · Muziek</div>
-          </div>
-
-          <div class="slot next">
-            <span class="badge next">STRAX</span>
-            <div class="time">14:30–16:00</div>
-            <div class="what">Workshop · Beeld</div>
-          </div>
+    <!-- SCREEN 2: AGENDA (placeholder) -->
+    <section class="screen" id="screen-agenda">
+      <div class="header">
+        <div class="header-left">
+          <img class="logo" src="docs/assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
+          <h1 class="title">Agenda</h1>
         </div>
-
-        <div class="room">
-          <div class="room-top">
-            <div class="room-name">Foyer</div>
-            <div class="room-state">OK</div>
-          </div>
-
-          <div class="slot now">
-            <span class="badge now">NU</span>
-            <div class="time">14:30–16:00</div>
-            <div class="what">Overleg</div>
-          </div>
-
-          <div class="slot next">
-            <span class="badge next">STRAX</span>
-            <div class="time">18:00–22:30</div>
-            <div class="what">Voorstelling · Publiek</div>
-          </div>
+        <div class="header-right">
+          <div class="date" id="todayLabelAgenda">—</div>
+          <div class="meta">Placeholder</div>
         </div>
-
       </div>
-    </div>
-  </section>
 
-  <!-- SCREEN 2: AGENDA -->
-  <section class="screen" id="screen-agenda">
-    <h1 class="title">Agenda</h1>
-    <p class="subtitle">Testdata — later uit Excel/Yesplan/website</p>
-
-    <div class="card fill">
-      <div class="row"><span style="font-weight:800;">vr 13 feb</span><span>Comedy Night · 20:00</span></div>
-      <div class="row"><span style="font-weight:800;">za 14 feb</span><span>Familiefilm · 14:30</span></div>
-      <div class="row"><span style="font-weight:800;">do 19 feb</span><span>Concert · 20:00</span></div>
-      <div class="row"><span style="font-weight:800;">zo 22 feb</span><span>Workshop · 10:00</span></div>
-
-      <p class="muted" style="margin-top:18px; font-size:var(--font-small);">
-        (Later: sorteren op datum, filter op “publiek”, en max. aantal items.)
-      </p>
-    </div>
-  </section>
-
-  <!-- SCREEN 3: PROMO -->
-  <section class="screen" id="screen-promo">
-    <div class="promo-slide active" data-promo="0">
-      <div class="promo-wrap" style="background:#f4f4ff;">
-        <p class="promo-kicker">Promo</p>
-        <h1 class="promo-title">Voorstelling A</h1>
-        <p class="promo-meta">Vrijdag 13 feb · 20:00 · Theaterzaal</p>
+      <div class="placeholder">
+        Agenda blijft voorlopig placeholder.<br/>
+        (Later uit Excel/Yesplan/website)
       </div>
-    </div>
+    </section>
 
-    <div class="promo-slide" data-promo="1">
-      <div class="promo-wrap" style="background:#fff4f4;">
-        <p class="promo-kicker">Promo</p>
-        <h1 class="promo-title">Voorstelling B</h1>
-        <p class="promo-meta">Zaterdag 14 feb · 14:30 · Filmzaal</p>
+    <!-- SCREEN 3: PROMO (placeholder) -->
+    <section class="screen" id="screen-promo">
+      <div class="header">
+        <div class="header-left">
+          <img class="logo" src="docs/assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
+          <h1 class="title">Promo</h1>
+        </div>
+        <div class="header-right">
+          <div class="date" id="todayLabelPromo">—</div>
+          <div class="meta">Placeholder</div>
+        </div>
       </div>
-    </div>
 
-    <div class="promo-slide" data-promo="2">
-      <div class="promo-wrap" style="background:#f4fff7;">
-        <p class="promo-kicker">Promo</p>
-        <h1 class="promo-title">Voorstelling C</h1>
-        <p class="promo-meta">Donderdag 19 feb · 20:00 · Foyer</p>
+      <div class="placeholder">
+        Promo blijft voorlopig placeholder.<br/>
+        (Later meerdere full-page ads)
       </div>
-    </div>
-  </section>
+    </section>
 
-  <div class="status" id="status">status…</div>
+  </div>
 
   <script>
-    // klok (bovenaan in planning)
-    function tick(){
-      const d = new Date();
-      const txt = d.toLocaleString("nl-BE", {
-        weekday:"long", year:"numeric", month:"long", day:"numeric",
-        hour:"2-digit", minute:"2-digit"
-      });
-      const el = document.getElementById("clockTop");
-      if (el) el.textContent = txt;
-    }
-    tick();
-    setInterval(tick, 1000);
+    /***********************
+     * CONFIG
+     ***********************/
+    const WORKER_URL = "https://hetperron-yesplan-proxy.davidfelizarda.workers.dev/";
+    const ROOMS_PER_VIEW = 6;
+    const REFRESH_MS = 2 * 60 * 1000;     // elke 2 minuten data opnieuw ophalen
+    const ROOMPAGE_MS = 12 * 1000;        // wissel tussen pagina's met zalen
 
-    // auto-refresh als failsafe
-    setTimeout(() => location.reload(), 5 * 60 * 1000);
-
-    // hoofdscreens rotatie
+    // Hoofdschermen (laten staan, maar nog geen rotatie zoals gevraagd)
     const screens = ["screen-planning", "screen-agenda", "screen-promo"];
-    let screenIndex = 0;
+    const ENABLE_MAIN_ROTATION = false;   // later pas op true zetten
 
-    function showScreen(idx){
-      screens.forEach((id, i) => {
-        document.getElementById(id).classList.toggle("active", i === idx);
+    const ROOM_ORDER = [
+      "Stadsschouwburg",
+      "Theaterzaal",
+      "Polyvalente zaal",
+      "Vergaderlokaal 1",
+      "Vergaderlokaal 2",
+      "Vergaderlokaal 3",
+      "Vergaderlokaal 4",
+      "Vergaderlokaal A",
+      "Repetitieruimte"
+    ];
+
+    /***********************
+     * CANVAS SCALE
+     ***********************/
+    function setScaleToFit() {
+      const stage = document.getElementById("stage");
+      const w = 1080, h = 1920;
+      const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
+      stage.style.setProperty("--scale", String(scale));
+    }
+
+    /***********************
+     * DATE FORMAT
+     ***********************/
+    function capitalize(s){ return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+    function formatTodayLabel(dateObj) {
+      const weekday = dateObj.toLocaleDateString("nl-BE", { weekday: "long", timeZone: "Europe/Brussels" });
+      const day = dateObj.toLocaleDateString("nl-BE", { day: "numeric", timeZone: "Europe/Brussels" });
+      const month = dateObj.toLocaleDateString("nl-BE", { month: "short", timeZone: "Europe/Brussels" });
+      return `${capitalize(weekday)} ${day} ${month}`;
+    }
+
+    function todayISO() {
+      return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" }); // YYYY-MM-DD
+    }
+
+    /***********************
+     * TIME PARSING
+     ***********************/
+    function parseTimeToDate(dateISO, hhmm) {
+      const [y,m,d] = dateISO.split("-").map(Number);
+      const [hh,mm] = String(hhmm).split(":").map(Number);
+      return new Date(y, m-1, d, hh, mm, 0, 0);
+    }
+
+    function normalizeEnd(startDate, endDate) {
+      if (endDate.getTime() < startDate.getTime()) {
+        const plus = new Date(endDate);
+        plus.setDate(plus.getDate() + 1);
+        return plus;
+      }
+      return endDate;
+    }
+
+    function isNowWithin(start, end, now) {
+      return now >= start && now < end;
+    }
+
+    /***********************
+     * HTML HELPERS
+     ***********************/
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function buildSlotHTML(type, activity) {
+      const isEmpty = !activity;
+      const pillLabel = (type === "now") ? "Nu" : "Straks";
+
+      return `
+        <div class="slot ${isEmpty ? "empty" : ""}">
+          <div class="pill ${type}">${pillLabel}</div>
+          <p class="time">${isEmpty ? "—" : `${escapeHtml(activity.startLabel)}–${escapeHtml(activity.endLabel)}`}</p>
+          <p class="name">${isEmpty ? " " : escapeHtml(activity.name)}</p>
+        </div>
+      `;
+    }
+
+    /***********************
+     * YESPLAN DATA FETCH (via Worker)
+     ***********************/
+    async function fetchYesplan() {
+      const res = await fetch(WORKER_URL, { cache: "no-store" });
+      if (!res.ok) {
+        const txt = await res.text().catch(()=> "");
+        throw new Error(`Worker error ${res.status}: ${txt}`);
+      }
+      const data = await res.json();
+      if (!Array.isArray(data)) throw new Error("Worker returned non-array JSON.");
+      return data;
+    }
+
+    /***********************
+     * ROOM MAPPING
+     ***********************/
+    function mapToCanonicalRoom(locName) {
+      const n = String(locName || "").toLowerCase();
+
+      if (n === "stadsschouwburg") return "Stadsschouwburg";
+      if (n === "theaterzaal") return "Theaterzaal";
+      if (n === "polyvalente zaal") return "Polyvalente zaal";
+
+      if (n === "vergaderlokaal 1") return "Vergaderlokaal 1";
+      if (n === "vergaderlokaal 2") return "Vergaderlokaal 2";
+      if (n === "vergaderlokaal 3") return "Vergaderlokaal 3";
+      if (n === "vergaderlokaal 4") return "Vergaderlokaal 4";
+      if (n === "vergaderlokaal a") return "Vergaderlokaal A";
+
+      // Repetitieruimte A/B/... samenvoegen
+      if (n.startsWith("repetitieruimte")) return "Repetitieruimte";
+
+      return null; // alles wat we niet tonen
+    }
+
+    /***********************
+     * COMPUTE NU / STRAKS PER ZAAL
+     ***********************/
+    function computeRoomPlan(items, dateISO) {
+      const now = new Date();
+
+      // group by canonical room
+      const byRoom = new Map();
+      for (const item of items) {
+        const loc = item?.Locatie?.name;
+        const room = mapToCanonicalRoom(loc);
+        if (!room) continue;
+
+        const name = item?.Naam || "";
+        const startLabel = item?.["Getoonde starttijd"];
+        const endLabel = item?.["Getoonde eindtijd"];
+        if (!startLabel || !endLabel) continue;
+
+        const start = parseTimeToDate(dateISO, startLabel);
+        let end = parseTimeToDate(dateISO, endLabel);
+        end = normalizeEnd(start, end);
+
+        if (!byRoom.has(room)) byRoom.set(room, []);
+        byRoom.get(room).push({ name, start, end, startLabel, endLabel });
+      }
+
+      // sort per room
+      for (const [room, arr] of byRoom.entries()) {
+        arr.sort((a,b)=> a.start - b.start);
+        byRoom.set(room, arr);
+      }
+
+      // build ordered list
+      const rooms = ROOM_ORDER.map(roomName => {
+        const arr = byRoom.get(roomName) || [];
+
+        const current = arr.find(a => isNowWithin(a.start, a.end, now)) || null;
+
+        let next = null;
+        if (current) {
+          next = arr.find(a => a.start > current.end) || null;
+        } else {
+          next = arr.find(a => a.start > now) || null;
+        }
+
+        // Spec: als er maar 1 activiteit is -> straks leeglaten
+        if (arr.length <= 1) next = null;
+
+        return { roomName, current, next };
       });
-      screenIndex = idx;
-      updateStatus();
+
+      return rooms;
     }
 
-    // promo rotatie
-    const promoSlides = Array.from(document.querySelectorAll(".promo-slide"));
-    let promoIndex = 0;
+    /***********************
+     * RENDER (6 per page + auto rotate)
+     ***********************/
+    let roomsAll = [];
+    let roomPageIndex = 0;
+    let roomPageTimer = null;
 
-    function showPromo(idx){
-      promoSlides.forEach((el, i) => {
-        el.classList.toggle("active", i === idx);
-      });
-      promoIndex = idx;
-      updateStatus();
+    function renderRoomPage() {
+      const grid = document.getElementById("roomsGrid");
+      const pageLabel = document.getElementById("pageLabel");
+
+      const totalRooms = roomsAll.length;
+      const totalPages = Math.max(1, Math.ceil(totalRooms / ROOMS_PER_VIEW));
+
+      if (roomPageIndex >= totalPages) roomPageIndex = 0;
+
+      const start = roomPageIndex * ROOMS_PER_VIEW;
+      const slice = roomsAll.slice(start, start + ROOMS_PER_VIEW);
+
+      grid.innerHTML = slice.map(r => {
+        const nowAct = r.current ? { startLabel: r.current.startLabel, endLabel: r.current.endLabel, name: r.current.name } : null;
+        const nextAct = r.next ? { startLabel: r.next.startLabel, endLabel: r.next.endLabel, name: r.next.name } : null;
+
+        return `
+          <article class="room-card">
+            <div class="room-head">
+              <h2 class="room-name">${escapeHtml(r.roomName)}</h2>
+            </div>
+            ${buildSlotHTML("now", nowAct)}
+            ${buildSlotHTML("next", nextAct)}
+          </article>
+        `;
+      }).join("");
+
+      pageLabel.textContent = (totalPages > 1)
+        ? `Planning ${roomPageIndex + 1}/${totalPages}`
+        : `Planning`;
     }
 
-    function updateStatus(){
-      const sName = ["Planning", "Agenda", "Promo"][screenIndex];
-      const pName = promoSlides.length ? ` · Promo ${promoIndex+1}/${promoSlides.length}` : "";
-      document.getElementById("status").textContent = `Scherm: ${sName}${screenIndex===2 ? pName : ""}`;
+    function startRoomPagination() {
+      if (roomPageTimer) clearInterval(roomPageTimer);
+
+      const totalPages = Math.ceil(roomsAll.length / ROOMS_PER_VIEW);
+      if (totalPages <= 1) return;
+
+      roomPageTimer = setInterval(() => {
+        roomPageIndex = (roomPageIndex + 1) % totalPages;
+        renderRoomPage();
+      }, ROOMPAGE_MS);
     }
-    updateStatus();
 
-    const SCREEN_SECONDS = 15;
-    const PROMO_SECONDS  = 8;
+    /***********************
+     * MAIN REFRESH LOOP
+     ***********************/
+    async function refreshPlanning() {
+      // header date labels
+      const today = new Date();
+      document.getElementById("todayLabel").textContent = formatTodayLabel(today);
+      document.getElementById("todayLabelAgenda").textContent = formatTodayLabel(today);
+      document.getElementById("todayLabelPromo").textContent = formatTodayLabel(today);
 
-    setInterval(() => {
-      const next = (screenIndex + 1) % screens.length;
-      showScreen(next);
-    }, SCREEN_SECONDS * 1000);
+      const dateISO = todayISO();
 
-    setInterval(() => {
-      if (promoSlides.length === 0) return;
-      const next = (promoIndex + 1) % promoSlides.length;
-      showPromo(next);
-    }, PROMO_SECONDS * 1000);
+      try {
+        const items = await fetchYesplan();
+        roomsAll = computeRoomPlan(items, dateISO);
+
+        roomPageIndex = 0;
+        renderRoomPage();
+        startRoomPagination();
+      } catch (err) {
+        console.error(err);
+        // fallback: toon lege cards
+        roomsAll = ROOM_ORDER.map(roomName => ({ roomName, current:null, next:null }));
+        roomPageIndex = 0;
+        renderRoomPage();
+        startRoomPagination();
+        document.getElementById("pageLabel").textContent = "Planning (geen data)";
+      }
+    }
+
+    /***********************
+     * OPTIONAL: MAIN SCREEN ROTATION (later)
+     ***********************/
+    function setActiveScreen(id){
+      screens.forEach(s => document.getElementById(s).classList.toggle("active", s === id));
+    }
+
+    function initMainRotation(){
+      if (!ENABLE_MAIN_ROTATION) return;
+      let idx = 0;
+      setInterval(() => {
+        idx = (idx + 1) % screens.length;
+        setActiveScreen(screens[idx]);
+      }, 15000);
+    }
+
+    // init
+    setScaleToFit();
+    window.addEventListener("resize", setScaleToFit);
+
+    refreshPlanning();
+    setInterval(refreshPlanning, REFRESH_MS);
+    initMainRotation();
   </script>
-
 </body>
 </html>
