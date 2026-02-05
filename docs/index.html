@@ -7,183 +7,179 @@
 
   <style>
     :root{
-      /* Huisstijl */
-      --perron-blue: #123d9c;
-      --ink: #111111;
-      --muted: rgba(17,17,17,.72);
-      --line: rgba(17,17,17,.10);
+      --perron-blue:#123d9c;
+      --ink:#111;
+      --muted:rgba(17,17,17,.72);
+      --line:rgba(17,17,17,.10);
 
-      /* Accenten */
-      --accent-now: #e3e314;
-      --accent-next: #e570c2;
+      --accent-now:#e3e314;
+      --accent-next:#e570c2;
 
-      /* Layout */
-      --pad: 48px;
-      --radius: 32px;
+      --pad:48px;
+      --radius:32px;
 
-      /* Typografie */
-      --font-base: 26px;
-      --font-small: 18px;
-      --font-large: 34px;
-      --font-xlarge: 60px;
+      --font-base:26px;
+      --font-small:18px;
+      --font-large:34px;
+      --font-xlarge:60px;
     }
 
-    html, body{
+    html,body{
       width:100vw;
       height:100vh;
     }
 
     body{
       margin:0;
-      font-family: Arial, sans-serif;
-      background:#ffffff;
-      color: var(--ink);
+      font-family:Arial,sans-serif;
+      background:#fff;
+      color:var(--ink);
       overflow:hidden;
-      font-size: var(--font-base);
+      font-size:var(--font-base);
     }
 
     .screen{
       position:fixed;
       inset:0;
-      padding: var(--pad);
+      padding:var(--pad);
       box-sizing:border-box;
       display:none;
     }
-    .screen.active{ display:block; }
+    .screen.active{display:block;}
 
-    /* ===== HEADER (zaalplanning) ===== */
+    /* ===== HEADER ===== */
     .header{
-      background: var(--perron-blue);
+      background:var(--perron-blue);
       color:#fff;
-      border-radius: var(--radius);
-      padding: 20px 24px;
-      margin-bottom: 16px;
+      border-radius:var(--radius);
+      padding:20px 24px;
+      margin-bottom:16px;
       display:flex;
       justify-content:space-between;
       align-items:flex-end;
-      gap: 16px;
+      gap:16px;
     }
 
     .brand{
       display:flex;
       align-items:flex-end;
-      gap: 20px;
+      gap:20px;
     }
 
     .brand img{
-      height: 52px;
-      width: auto;
+      height:52px;
+      width:auto;
       display:block;
     }
 
     .brand h1{
       margin:0;
-      font-size: var(--font-xlarge);
-      font-weight: 900;
-      letter-spacing: -0.02em;
-      line-height: 1.0;
+      font-size:var(--font-xlarge);
+      font-weight:900;
+      letter-spacing:-0.02em;
+      line-height:1;
     }
 
     .meta{
-      font-size: var(--font-small);
+      font-size:var(--font-small);
       text-align:right;
       opacity:.9;
-      white-space: nowrap;
-      line-height: 1.2;
+      white-space:nowrap;
+      line-height:1.2;
     }
 
     /* ===== ZAALPLANNING ===== */
     .planning-wrap{
-      height: calc(100vh - (var(--pad) * 2) - 110px);
+      height:calc(100vh - (var(--pad)*2) - 110px);
     }
 
     .rooms{
       display:grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: repeat(3, 1fr);
-      gap: 14px;
-      height: 100%;
+      grid-template-columns:1fr 1fr;
+      grid-template-rows:repeat(3,1fr);
+      gap:14px;
+      height:100%;
     }
 
     .room{
-      border: 2px solid var(--line);
-      border-radius: 26px;
-      padding: 14px;
+      border:2px solid var(--line);
+      border-radius:26px;
+      padding:14px;
       background:#fff;
       display:flex;
       flex-direction:column;
-      gap: 10px;
+      gap:10px;
     }
 
     .room-name{
-      font-weight: 900;
-      padding-bottom: 6px;
-      border-bottom: 1px solid var(--line);
+      font-weight:900;
+      padding-bottom:6px;
+      border-bottom:1px solid var(--line);
     }
 
     .slot{
-      padding: 10px;
-      border-radius: 18px;
-      border: 2px solid var(--line);
+      padding:10px;
+      border-radius:18px;
+      border:2px solid var(--line);
       display:flex;
       flex-direction:column;
-      gap: 4px;
+      gap:4px;
+      min-height:64px; /* STRAKS blijft leeg maar zichtbaar */
     }
 
     .badge{
-      font-size: 13px;
-      font-weight: 900;
-      letter-spacing: .12em;
-      text-transform: uppercase;
-      padding: 6px 10px;
-      border-radius: 999px;
-      width: fit-content;
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      padding:6px 10px;
+      border-radius:999px;
+      width:fit-content;
     }
-    .badge.now{ background: var(--accent-now); }
-    .badge.next{ background: var(--accent-next); }
 
-    .time{ font-weight: 900; }
-    .what{ font-size:.85em; color:var(--muted); }
+    .badge.now{background:var(--accent-now);}
+    .badge.next{background:var(--accent-next);}
 
-    /* ===== AGENDA (placeholder) ===== */
+    .time{font-weight:900;}
+    .what{font-size:.85em;color:var(--muted);}
+
+    /* ===== AGENDA / PROMO PLACEHOLDERS ===== */
     .title{
-      font-size: var(--font-xlarge);
-      font-weight: 900;
-      margin: 0 0 24px 0;
+      font-size:var(--font-xlarge);
+      font-weight:900;
+      margin:0 0 24px 0;
     }
 
     .card{
-      border: 2px solid var(--line);
-      border-radius: var(--radius);
-      padding: 24px;
-      height: calc(100vh - (var(--pad) * 2) - 120px);
+      border:2px solid var(--line);
+      border-radius:var(--radius);
+      padding:24px;
+      height:calc(100vh - (var(--pad)*2) - 120px);
     }
 
     .row{
       display:flex;
       justify-content:space-between;
-      padding: 16px 0;
-      border-bottom: 1px solid var(--line);
+      padding:16px 0;
+      border-bottom:1px solid var(--line);
     }
 
-    /* ===== PROMO (placeholder) ===== */
     .promo{
+      height:calc(100vh - (var(--pad)*2));
+      border:2px dashed var(--line);
+      border-radius:var(--radius);
       display:flex;
       align-items:center;
       justify-content:center;
-      height: calc(100vh - (var(--pad) * 2));
-      border: 2px dashed var(--line);
-      border-radius: var(--radius);
-      font-size: var(--font-large);
-      color: var(--muted);
+      font-size:var(--font-large);
+      color:var(--muted);
     }
 
-    /* ===== STATUS ===== */
     .status{
       position:fixed;
-      left: var(--pad);
-      bottom: 16px;
-      font-size: 16px;
+      left:var(--pad);
+      bottom:16px;
+      font-size:16px;
       opacity:.55;
     }
   </style>
@@ -191,107 +187,143 @@
 
 <body>
 
-  <!-- SCREEN 1: ZAALPLANNING -->
-  <section class="screen active" id="screen-planning">
-    <div class="header">
-      <div class="brand">
-        <img src="./assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
-        <h1>Zaalplanning</h1>
+<!-- ===== SCREEN 1: ZAALPLANNING (1–6) ===== -->
+<section class="screen active" id="screen-plan-1">
+  <div class="header">
+    <div class="brand">
+      <img src="./assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron">
+      <h1>Zaalplanning</h1>
+    </div>
+    <div class="meta">
+      <div id="clockTop">—</div>
+      <div>Live overzicht</div>
+    </div>
+  </div>
+
+  <div class="planning-wrap">
+    <div class="rooms">
+
+      <div class="room">
+        <div class="room-name">Stadsschouwburg</div>
+        <div class="slot"><span class="badge now">NU</span><div class="time">10:00–12:00</div><div class="what">Voorstelling</div></div>
+        <div class="slot"></div>
       </div>
-      <div class="meta">
-        <div id="clockTop">—</div>
-        <div>Live overzicht</div>
+
+      <div class="room">
+        <div class="room-name">Theaterzaal</div>
+        <div class="slot"><span class="badge now">NU</span><div class="time">11:00–12:00</div><div class="what">Workshop</div></div>
+        <div class="slot"><span class="badge next">STRAKS</span><div class="time">13:00–15:00</div><div class="what">Repetitie</div></div>
       </div>
-    </div>
 
-    <div class="planning-wrap">
-      <div class="rooms">
-
-        <div class="room">
-          <div class="room-name">Theaterzaal</div>
-          <div class="slot"><span class="badge now">NU</span><div class="time">10:00–12:00</div><div class="what">Workshop · Dans</div></div>
-          <div class="slot"><span class="badge next">STRAKS</span><div class="time">12:30–14:00</div><div class="what">Repetitie · Techniek</div></div>
-        </div>
-
-        <div class="room">
-          <div class="room-name">Filmzaal</div>
-          <div class="slot"><span class="badge now">NU</span><div class="time">11:00–12:00</div><div class="what">Schoolvoorstelling</div></div>
-          <div class="slot"><span class="badge next">STRAKS</span><div class="time">13:00–15:00</div><div class="what">Opbouw · Film</div></div>
-        </div>
-
-        <div class="room">
-          <div class="room-name">Studio</div>
-          <div class="slot"><span class="badge now">NU</span><div class="time">12:30–14:00</div><div class="what">Repetitie · Muziek</div></div>
-          <div class="slot"><span class="badge next">STRAKS</span><div class="time">14:30–16:00</div><div class="what">Workshop · Beeld</div></div>
-        </div>
-
-        <div class="room">
-          <div class="room-name">Foyer</div>
-          <div class="slot"><span class="badge now">NU</span><div class="time">14:30–16:00</div><div class="what">Overleg</div></div>
-          <div class="slot"><span class="badge next">STRAKS</span><div class="time">18:00–22:30</div><div class="what">Voorstelling · Publiek</div></div>
-        </div>
-
-        <div class="room">
-          <div class="room-name">Polyvalente</div>
-          <div class="slot"><span class="badge now">NU</span><div class="time">09:00–11:00</div><div class="what">Opbouw</div></div>
-          <div class="slot"><span class="badge next">STRAKS</span><div class="time">11:30–13:00</div><div class="what">Workshop</div></div>
-        </div>
-
-        <div class="room">
-          <div class="room-name">Vergaderzaal</div>
-          <div class="slot"><span class="badge now">NU</span><div class="time">10:00–11:30</div><div class="what">Overleg</div></div>
-          <div class="slot"><span class="badge next">STRAKS</span><div class="time">12:00–13:30</div><div class="what">Brainstorm</div></div>
-        </div>
-
+      <div class="room">
+        <div class="room-name">Polyvalente zaal</div>
+        <div class="slot"><span class="badge now">NU</span><div class="time">09:00–11:00</div><div class="what">Opbouw</div></div>
+        <div class="slot"></div>
       </div>
+
+      <div class="room">
+        <div class="room-name">Vergaderlokaal 1</div>
+        <div class="slot"><span class="badge now">NU</span><div class="time">10:00–11:30</div><div class="what">Overleg</div></div>
+        <div class="slot"></div>
+      </div>
+
+      <div class="room">
+        <div class="room-name">Vergaderlokaal 2</div>
+        <div class="slot"><span class="badge now">NU</span><div class="time">10:30–12:00</div><div class="what">Vergadering</div></div>
+        <div class="slot"></div>
+      </div>
+
+      <div class="room">
+        <div class="room-name">Vergaderlokaal 3</div>
+        <div class="slot"><span class="badge now">NU</span><div class="time">09:30–11:00</div><div class="what">Overleg</div></div>
+        <div class="slot"></div>
+      </div>
+
     </div>
-  </section>
+  </div>
+</section>
 
-  <!-- SCREEN 2: AGENDA -->
-  <section class="screen" id="screen-agenda">
-    <h1 class="title">Agenda</h1>
-    <div class="card">
-      <div class="row"><strong>vr 13 feb</strong><span>Comedy Night · 20:00</span></div>
-      <div class="row"><strong>za 14 feb</strong><span>Familiefilm · 14:30</span></div>
-      <div class="row"><strong>do 19 feb</strong><span>Concert · 20:00</span></div>
+<!-- ===== SCREEN 2: ZAALPLANNING (7–9) ===== -->
+<section class="screen" id="screen-plan-2">
+  <div class="header">
+    <div class="brand">
+      <img src="./assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron">
+      <h1>Zaalplanning</h1>
     </div>
-  </section>
-
-  <!-- SCREEN 3: PROMO -->
-  <section class="screen" id="screen-promo">
-    <div class="promo">
-      Promo’s volgen later
+    <div class="meta">
+      <div id="clockTop2">—</div>
+      <div>Live overzicht</div>
     </div>
-  </section>
+  </div>
 
-  <div class="status" id="status">—</div>
+  <div class="planning-wrap">
+    <div class="rooms">
 
-  <script>
-    function tick(){
-      const d = new Date();
-      const txt = d.toLocaleString("nl-BE", {
-        weekday:"long", day:"numeric", month:"long",
-        hour:"2-digit", minute:"2-digit"
-      });
-      document.getElementById("clockTop").textContent = txt;
-    }
-    tick();
-    setInterval(tick, 1000);
+      <div class="room">
+        <div class="room-name">Vergaderlokaal 4</div>
+        <div class="slot"><span class="badge now">NU</span><div class="time">10:00–11:30</div><div class="what">Overleg</div></div>
+        <div class="slot"></div>
+      </div>
 
-    const screens = ["screen-planning","screen-agenda","screen-promo"];
-    let i = 0;
+      <div class="room">
+        <div class="room-name">Vergaderlokaal A</div>
+        <div class="slot"><span class="badge now">NU</span><div class="time">11:00–12:30</div><div class="what">Workshop</div></div>
+        <div class="slot"></div>
+      </div>
 
-    setInterval(() => {
-      screens.forEach((id,idx)=>{
-        document.getElementById(id).classList.toggle("active", idx===i);
-      });
-      document.getElementById("status").textContent =
-        "Scherm: " + ["Planning","Agenda","Promo"][i];
-      i = (i+1)%screens.length;
-    }, 15000);
+      <div class="room">
+        <div class="room-name">Repetitieruimte</div>
+        <div class="slot"><span class="badge now">NU</span><div class="time">09:00–13:00</div><div class="what">Repetitie</div></div>
+        <div class="slot"></div>
+      </div>
 
-    setTimeout(()=>location.reload(), 5*60*1000);
-  </script>
+    </div>
+  </div>
+</section>
+
+<!-- ===== SCREEN 3: AGENDA ===== -->
+<section class="screen" id="screen-agenda">
+  <h1 class="title">Agenda</h1>
+  <div class="card">
+    <div class="row"><strong>vr 13 feb</strong><span>Comedy Night · 20:00</span></div>
+    <div class="row"><strong>za 14 feb</strong><span>Familiefilm · 14:30</span></div>
+  </div>
+</section>
+
+<!-- ===== SCREEN 4: PROMO ===== -->
+<section class="screen" id="screen-promo">
+  <div class="promo">Promo’s volgen later</div>
+</section>
+
+<div class="status" id="status">—</div>
+
+<script>
+  function tick(){
+    const d = new Date();
+    const t = d.toLocaleString("nl-BE",{
+      weekday:"long",day:"numeric",month:"long",
+      hour:"2-digit",minute:"2-digit"
+    });
+    document.getElementById("clockTop").textContent = t;
+    document.getElementById("clockTop2").textContent = t;
+  }
+  tick();
+  setInterval(tick,1000);
+
+  const screens=["screen-plan-1","screen-plan-2","screen-agenda","screen-promo"];
+  let i=0;
+
+  setInterval(()=>{
+    screens.forEach((id,idx)=>{
+      document.getElementById(id).classList.toggle("active",idx===i);
+    });
+    document.getElementById("status").textContent=
+      "Scherm: "+["Planning 1","Planning 2","Agenda","Promo"][i];
+    i=(i+1)%screens.length;
+  },15000);
+
+  setTimeout(()=>location.reload(),5*60*1000);
+</script>
 
 </body>
 </html>
