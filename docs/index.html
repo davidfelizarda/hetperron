@@ -3,38 +3,281 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Perron Screen Test</title>
+  <title>Het Perron — Screen</title>
+
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; }
-    .wrap {
-      height: 100vh; display: flex; flex-direction: column;
-      justify-content: center; align-items: center; gap: 24px;
-      padding: 48px; box-sizing: border-box; text-align: center;
+    :root{
+      --pad: 64px;
     }
-    h1 { font-size: 64px; margin: 0; }
-    .row { font-size: 36px; }
-    .small { font-size: 24px; opacity: 0.8; }
+
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      background:#ffffff;
+      color:#111;
+      overflow:hidden;
+    }
+
+    /* Elke "screen" is full page */
+    .screen{
+      position:fixed;
+      inset:0;
+      padding: var(--pad);
+      box-sizing:border-box;
+      display:none;
+    }
+
+    .screen.active{
+      display:block;
+    }
+
+    .title{
+      font-size:64px;
+      font-weight:700;
+      margin:0 0 24px 0;
+      line-height:1.05;
+    }
+
+    .subtitle{
+      font-size:28px;
+      opacity:.75;
+      margin:0 0 32px 0;
+    }
+
+    .big{
+      font-size:36px;
+      line-height:1.3;
+    }
+
+    /* Simpele layout helpers */
+    .grid2{
+      display:grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 32px;
+      height: calc(100vh - (var(--pad) * 2) - 130px);
+    }
+
+    .card{
+      border: 2px solid #eee;
+      border-radius: 24px;
+      padding: 28px;
+      box-sizing: border-box;
+      height: 100%;
+    }
+
+    .card h2{
+      margin:0 0 16px 0;
+      font-size:36px;
+    }
+
+    .row{
+      display:flex;
+      justify-content:space-between;
+      gap:24px;
+      font-size:30px;
+      padding:14px 0;
+      border-bottom:1px solid #f1f1f1;
+    }
+
+    .muted{
+      opacity:.7;
+    }
+
+    /* Promo slides (full page binnen promo screen) */
+    .promo-slide{
+      position:absolute;
+      inset:0;
+      padding: var(--pad);
+      box-sizing:border-box;
+      display:none;
+    }
+    .promo-slide.active{
+      display:block;
+    }
+
+    .promo-wrap{
+      height: calc(100vh - (var(--pad) * 2));
+      border-radius: 36px;
+      padding: 48px;
+      box-sizing:border-box;
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-end;
+      border: 2px solid rgba(0,0,0,.08);
+    }
+
+    .promo-kicker{
+      font-size:26px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      opacity:.85;
+      margin:0 0 12px 0;
+    }
+
+    .promo-title{
+      font-size:84px;
+      font-weight:800;
+      margin:0 0 18px 0;
+      line-height:1.0;
+    }
+
+    .promo-meta{
+      font-size:34px;
+      opacity:.9;
+      margin:0;
+    }
+
+    /* Kleine status onderaan (voor test) */
+    .status{
+      position:fixed;
+      left: var(--pad);
+      bottom: 28px;
+      font-size:20px;
+      opacity:.55;
+    }
   </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <h1>Het Perron — Screen Test</h1>
-    <div class="row" id="clock">tijd…</div>
-    <div class="row">✅ Als je dit ziet op tv: URL werkt</div>
-    <div class="small">Auto-refresh elke 5 minuten</div>
-  </div>
+
+  <!-- SCREEN 1: PLANNING -->
+  <section class="screen active" id="screen-planning">
+    <h1 class="title">Lokalenplanning</h1>
+    <p class="subtitle">Testdata — later via Yesplan API</p>
+
+    <div class="grid2">
+      <div class="card">
+        <h2>Vandaag</h2>
+
+        <div class="row"><span>Zaal</span><span class="muted">10:00–12:00 · Workshop</span></div>
+        <div class="row"><span>Studio</span><span class="muted">12:30–14:00 · Repetitie</span></div>
+        <div class="row"><span>Foyer</span><span class="muted">14:30–16:00 · Overleg</span></div>
+        <div class="row"><span>Polyvalente</span><span class="muted">18:00–22:30 · Voorstelling</span></div>
+
+        <p class="muted" style="margin-top:18px; font-size:22px;">
+          (Later: per lokaal “nu” en “straks”, en alleen de eerstvolgende items.)
+        </p>
+      </div>
+
+      <div class="card">
+        <h2>Nu</h2>
+        <p class="big" id="clock">tijd…</p>
+        <p class="big">✅ URL draait</p>
+        <p class="muted" style="font-size:22px;">Auto-refresh elke 5 minuten</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN 2: AGENDA -->
+  <section class="screen" id="screen-agenda">
+    <h1 class="title">Agenda</h1>
+    <p class="subtitle">Testdata — later uit Excel/Yesplan/website</p>
+
+    <div class="card" style="height: calc(100vh - (var(--pad) * 2) - 130px);">
+      <div class="row"><span>vr 13 feb</span><span>Comedy Night · 20:00</span></div>
+      <div class="row"><span>za 14 feb</span><span>Familiefilm · 14:30</span></div>
+      <div class="row"><span>do 19 feb</span><span>Concert · 20:00</span></div>
+      <div class="row"><span>zo 22 feb</span><span>Workshop · 10:00</span></div>
+
+      <p class="muted" style="margin-top:18px; font-size:22px;">
+        (Later: sorteren op datum, filter op “publiek”, en max. aantal items.)
+      </p>
+    </div>
+  </section>
+
+  <!-- SCREEN 3: PROMO (met meerdere full-page slides) -->
+  <section class="screen" id="screen-promo">
+    <div class="promo-slide active" data-promo="0">
+      <div class="promo-wrap" style="background:#f4f4ff;">
+        <p class="promo-kicker">Promo</p>
+        <h1 class="promo-title">Voorstelling A</h1>
+        <p class="promo-meta">Vrijdag 13 feb · 20:00 · Grote zaal</p>
+      </div>
+    </div>
+
+    <div class="promo-slide" data-promo="1">
+      <div class="promo-wrap" style="background:#fff4f4;">
+        <p class="promo-kicker">Promo</p>
+        <h1 class="promo-title">Voorstelling B</h1>
+        <p class="promo-meta">Zaterdag 14 feb · 14:30 · Filmzaal</p>
+      </div>
+    </div>
+
+    <div class="promo-slide" data-promo="2">
+      <div class="promo-wrap" style="background:#f4fff7;">
+        <p class="promo-kicker">Promo</p>
+        <h1 class="promo-title">Voorstelling C</h1>
+        <p class="promo-meta">Donderdag 19 feb · 20:00 · Foyer</p>
+      </div>
+    </div>
+  </section>
+
+  <div class="status" id="status">status…</div>
 
   <script>
+    // 1) klok
     function tick(){
       const d = new Date();
       document.getElementById("clock").textContent =
-        d.toLocaleString("nl-BE", { weekday:"long", year:"numeric", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" });
+        d.toLocaleString("nl-BE", {
+          weekday:"long", year:"numeric", month:"long", day:"numeric",
+          hour:"2-digit", minute:"2-digit"
+        });
     }
     tick();
     setInterval(tick, 1000);
 
-    // auto-refresh (handig tegen browser "vastlopers")
+    // 2) auto-refresh als failsafe
     setTimeout(() => location.reload(), 5 * 60 * 1000);
+
+    // 3) hoofdscreens rotatie
+    const screens = ["screen-planning", "screen-agenda", "screen-promo"];
+    let screenIndex = 0;
+
+    function showScreen(idx){
+      screens.forEach((id, i) => {
+        document.getElementById(id).classList.toggle("active", i === idx);
+      });
+      screenIndex = idx;
+      updateStatus();
+    }
+
+    // 4) promo rotatie (alleen relevant wanneer promo-screen actief is)
+    const promoSlides = Array.from(document.querySelectorAll(".promo-slide"));
+    let promoIndex = 0;
+
+    function showPromo(idx){
+      promoSlides.forEach((el, i) => {
+        el.classList.toggle("active", i === idx);
+      });
+      promoIndex = idx;
+      updateStatus();
+    }
+
+    function updateStatus(){
+      const sName = ["Planning", "Agenda", "Promo"][screenIndex];
+      const pName = promoSlides.length ? ` · Promo ${promoIndex+1}/${promoSlides.length}` : "";
+      document.getElementById("status").textContent = `Scherm: ${sName}${screenIndex===2 ? pName : ""}`;
+    }
+    updateStatus();
+
+    // Timing (later makkelijk aanpassen)
+    const SCREEN_SECONDS = 15; // hoe lang elk hoofdscherm blijft staan
+    const PROMO_SECONDS  = 8;  // hoe lang elke promo-slide blijft staan
+
+    // Hoofdrotatie
+    setInterval(() => {
+      const next = (screenIndex + 1) % screens.length;
+      showScreen(next);
+    }, SCREEN_SECONDS * 1000);
+
+    // Promo-rotatie: loopt continu, maar je ziet het enkel wanneer promo-screen actief is
+    setInterval(() => {
+      if (promoSlides.length === 0) return;
+      const next = (promoIndex + 1) % promoSlides.length;
+      showPromo(next);
+    }, PROMO_SECONDS * 1000);
   </script>
+
 </body>
 </html>
