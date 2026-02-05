@@ -66,17 +66,18 @@
       color:#fff;
     }
     .header-left{
-      display:flex;
-      flex-direction:column;
-      gap:16px;
-      min-width:0;
-    }
-   .logo{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start; /* belangrijk */
+  gap:14px;
+}
+  .logo{
   height:52px;
   width:auto;
-  max-width:520px;   /* voorkomt dat hij te breed wordt */
+  max-width:520px;
   object-fit:contain;
   display:block;
+  margin-bottom:4px; /* kleine optische correctie */
 }
     .title{
       font-size:84px;
