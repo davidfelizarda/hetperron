@@ -567,6 +567,28 @@
     // init
     setScaleToFit();
     window.addEventListener("resize", setScaleToFit);
+/***********************
+ * NIGHTLY HARD REFRESH
+ * (voorkomt TV browser issues)
+ ***********************/
+function scheduleNightReload() {
+  const now = new Date();
+  const reload = new Date();
+
+  reload.setHours(4, 0, 0, 0); // 04:00 's nachts
+
+  if (reload <= now) {
+    reload.setDate(reload.getDate() + 1);
+  }
+
+  const timeout = reload.getTime() - now.getTime();
+
+  setTimeout(() => {
+    location.reload(true);
+  }, timeout);
+}
+
+scheduleNightReload();
 
     refreshPlanning();
     setInterval(refreshPlanning, REFRESH_MS);
