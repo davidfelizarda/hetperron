@@ -57,30 +57,30 @@
 
     /* Header */
     .header{
-  background:var(--brand-blue);
-  border-radius: var(--r-xl);
-  padding:42px;
-  color:#fff;
+      background:var(--brand-blue);
+      border-radius: var(--r-xl);
+      padding:42px;
+      color:#fff;
 
-  display:grid;
-  grid-template-columns: 1fr auto; /* links vast, rechts datum */
-  align-items:end;
-}
+      display:grid;
+      grid-template-columns: 1fr auto; /* links vast, rechts datum */
+      align-items:end;
+    }
 
- .header-left{
-  display:flex;
-  flex-direction:column;
-  align-items:flex-start;
-  gap:14px;
-}
+    .header-left{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:14px;
+    }
 
-.logo{
-  height:52px;
-  width:auto;
-  max-width:520px;
-  object-fit:contain;
-  display:block;
-}
+    .logo{
+      height:52px;
+      width:auto;
+      max-width:520px;
+      object-fit:contain;
+      display:block;
+    }
 
     .title{
       font-size:84px;
@@ -90,12 +90,13 @@
       margin:0;
       white-space:nowrap;
     }
-   .header-right{
-  text-align:right;
-  font-size:30px;
-  line-height:1.15;
-  opacity:.95;
-}
+
+    .header-right{
+      text-align:right;
+      font-size:30px;
+      line-height:1.15;
+      opacity:.95;
+    }
 
     .header-right .date{
       font-weight:800;
@@ -219,7 +220,7 @@
     <section class="screen" id="screen-agenda">
       <div class="header">
         <div class="header-left">
-        <img class="logo" src="assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
+          <img class="logo" src="assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
           <h1 class="title">Agenda</h1>
         </div>
         <div class="header-right">
@@ -238,7 +239,7 @@
     <section class="screen" id="screen-promo">
       <div class="header">
         <div class="header-left">
-        <img class="logo" src="assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
+          <img class="logo" src="assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
           <h1 class="title">Promo</h1>
         </div>
         <div class="header-right">
@@ -281,6 +282,11 @@
     ];
 
     /***********************
+     * FALLBACK (laatste geldige data)
+     ***********************/
+    let lastGoodData = null;
+
+    /***********************
      * CANVAS SCALE
      ***********************/
     function setScaleToFit() {
@@ -303,7 +309,8 @@
     }
 
     function todayISO() {
-      return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" }); // YYYY-MM-DD
+      // YYYY-MM-DD in Europe/Brussels (belangrijk rond middernacht)
+      return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
     }
 
     /***********************
@@ -355,16 +362,26 @@
 
     /***********************
      * YESPLAN DATA FETCH (via Worker)
+     * + fallback op laatste geldige data
      ***********************/
     async function fetchYesplan() {
-      const res = await fetch(WORKER_URL, { cache: "no-store" });
-      if (!res.ok) {
-        const txt = await res.text().catch(()=> "");
-        throw new Error(`Worker error ${res.status}: ${txt}`);
+      try {
+        const res = await fetch(WORKER_URL, { cache: "no-store" });
+        if (!res.ok) {
+          const txt = await res.text().catch(()=> "");
+          throw new Error(`Worker error ${res.status}: ${txt}`);
+        }
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error("Worker returned non-array JSON.");
+
+        lastGoodData = data;
+        return data;
+      } catch (err) {
+        console.error("fetchYesplan failed:", err);
+
+        if (lastGoodData) return lastGoodData;
+        return [];
       }
-      const data = await res.json();
-      if (!Array.isArray(data)) throw new Error("Worker returned non-array JSON.");
-      return data;
     }
 
     /***********************
@@ -506,16 +523,15 @@
 
       const dateISO = todayISO();
 
-      try {
-        const items = await fetchYesplan();
-        roomsAll = computeRoomPlan(items, dateISO);
+      const items = await fetchYesplan();
+      roomsAll = computeRoomPlan(items, dateISO);
 
-        roomPageIndex = 0;
-        renderRoomPage();
-        startRoomPagination();
-      } catch (err) {
-        console.error(err);
-        // fallback: toon lege cards
+      roomPageIndex = 0;
+      renderRoomPage();
+      startRoomPagination();
+
+      // Als er nog nooit data was en worker faalt: toon lege cards + label
+      if ((!items || items.length === 0) && !lastGoodData) {
         roomsAll = ROOM_ORDER.map(roomName => ({ roomName, current:null, next:null }));
         roomPageIndex = 0;
         renderRoomPage();
