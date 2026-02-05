@@ -6,14 +6,16 @@
   <title>Het Perron — Screen</title>
 
   <style>
-    :root{
-      --pad: 64px;
-    }
+  :root{
+  --pad: 64px;
 
-   html, body{
-  width:100vw;
-  height:100vh;
+  /* TV-leesbaarheid */
+  --font-base: 28px;
+  --font-small: 22px;
+  --font-large: 36px;
+  --font-xlarge: 64px;
 }
+
 
 body{
   margin:0;
@@ -21,7 +23,9 @@ body{
   background:#ffffff;
   color:#111;
   overflow:hidden;
+  font-size: var(--font-base);
 }
+
 
 
     /* Elke "screen" is full page */
@@ -37,23 +41,26 @@ body{
       display:block;
     }
 
-    .title{
-      font-size:64px;
-      font-weight:700;
-      margin:0 0 24px 0;
-      line-height:1.05;
-    }
+ .title{
+  font-size:64px;
+  font-weight:700;
+  margin:0 0 24px 0;
+  line-height:1.05;
+}
 
-    .subtitle{
-      font-size:28px;
-      opacity:.75;
-      margin:0 0 32px 0;
-    }
+
+   .subtitle{
+  font-size:28px;
+  opacity:.75;
+  margin:0 0 32px 0;
+}
+
 
     .big{
-      font-size:36px;
-      line-height:1.3;
-    }
+  font-size: var(--font-large);
+  line-height:1.25;
+}
+
 
     /* Simpele layout helpers */
     .grid2{
@@ -121,11 +128,12 @@ body{
     }
 
     .promo-title{
-      font-size:84px;
-      font-weight:800;
-      margin:0 0 18px 0;
-      line-height:1.0;
-    }
+  font-size: 96px;
+  font-weight:900;
+  margin:0 0 16px 0;
+  line-height:1.0;
+}
+
 
     .promo-meta{
       font-size:34px;
