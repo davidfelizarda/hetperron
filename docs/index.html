@@ -57,28 +57,31 @@
 
     /* Header */
     .header{
-      background:var(--brand-blue);
-      border-radius: var(--r-xl);
-      padding:42px;
-      display:flex;
-      align-items:flex-end;
-      justify-content:space-between;
-      color:#fff;
-    }
-    .header-left{
+  background:var(--brand-blue);
+  border-radius: var(--r-xl);
+  padding:42px;
+  color:#fff;
+
+  display:grid;
+  grid-template-columns: 1fr auto; /* links vast, rechts datum */
+  align-items:end;
+}
+
+ .header-left{
   display:flex;
   flex-direction:column;
-  align-items:flex-start; /* belangrijk */
+  align-items:flex-start;
   gap:14px;
 }
-  .logo{
+
+.logo{
   height:52px;
   width:auto;
   max-width:520px;
   object-fit:contain;
   display:block;
-  margin-bottom:4px; /* kleine optische correctie */
 }
+
     .title{
       font-size:84px;
       line-height:0.95;
@@ -87,14 +90,13 @@
       margin:0;
       white-space:nowrap;
     }
-    .header-right{
-      text-align:right;
-      font-size:30px;
-      line-height:1.15;
-      opacity:.95;
-      min-width:260px;
-      margin-left:24px;
-    }
+   .header-right{
+  text-align:right;
+  font-size:30px;
+  line-height:1.15;
+  opacity:.95;
+}
+
     .header-right .date{
       font-weight:800;
     }
