@@ -3,176 +3,142 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Het Perron — Narrowcasting</title>
+  <title>Het Perron — Screen</title>
 
   <style>
     :root{
-      --perron-blue:#123d9c;
-      --ink:#111;
-      --muted:rgba(17,17,17,.72);
-      --line:rgba(17,17,17,.10);
-
-      --accent-now:#e3e314;
-      --accent-next:#e570c2;
-
-      --pad:48px;
-      --radius:32px;
-
-      --font-base:26px;
-      --font-small:18px;
-      --font-large:34px;
-      --font-xlarge:60px;
+      --pad: 64px;
     }
 
-    html,body{ width:100vw; height:100vh; }
+   html, body{
+  width:100vw;
+  height:100vh;
+}
 
-    body{
-      margin:0;
-      font-family:Arial,sans-serif;
-      background:#fff;
-      color:var(--ink);
-      overflow:hidden;
-      font-size:var(--font-base);
-    }
+body{
+  margin:0;
+  font-family: Arial, sans-serif;
+  background:#ffffff;
+  color:#111;
+  overflow:hidden;
+}
 
+
+    /* Elke "screen" is full page */
     .screen{
       position:fixed;
       inset:0;
-      padding:var(--pad);
+      padding: var(--pad);
       box-sizing:border-box;
       display:none;
     }
-    .screen.active{display:block;}
 
-    .header{
-      background:var(--perron-blue);
-      color:#fff;
-      border-radius:var(--radius);
-      padding:20px 24px;
-      margin-bottom:16px;
-      display:flex;
-      justify-content:space-between;
-      align-items:flex-end;
-      gap:16px;
-    }
-
-    .brand{
-      display:flex;
-      align-items:flex-end;
-      gap:20px;
-    }
-
-    .brand img{
-      height:52px;
-      width:auto;
+    .screen.active{
       display:block;
     }
 
-    .brand h1{
-      margin:0;
-      font-size:var(--font-xlarge);
-      font-weight:900;
-      letter-spacing:-0.02em;
-      line-height:1;
-    }
-
-    .meta{
-      font-size:var(--font-small);
-      text-align:right;
-      opacity:.9;
-      white-space:nowrap;
-      line-height:1.2;
-    }
-
-    .planning-wrap{
-      height:calc(100vh - (var(--pad)*2) - 110px);
-    }
-
-    .rooms{
-      display:grid;
-      grid-template-columns:1fr 1fr;
-      grid-template-rows:repeat(3,1fr);
-      gap:14px;
-      height:100%;
-    }
-
-    .room{
-      border:2px solid var(--line);
-      border-radius:26px;
-      padding:14px;
-      background:#fff;
-      display:flex;
-      flex-direction:column;
-      gap:10px;
-    }
-
-    .room-name{
-      font-weight:900;
-      padding-bottom:6px;
-      border-bottom:1px solid var(--line);
-    }
-
-    .slot{
-      padding:10px;
-      border-radius:18px;
-      border:2px solid var(--line);
-      display:flex;
-      flex-direction:column;
-      gap:4px;
-      min-height:64px; /* STRAKS blijft leeg maar zichtbaar */
-    }
-
-    .badge{
-      font-size:13px;
-      font-weight:900;
-      letter-spacing:.12em;
-      text-transform:uppercase;
-      padding:6px 10px;
-      border-radius:999px;
-      width:fit-content;
-    }
-    .badge.now{background:var(--accent-now);}
-    .badge.next{background:var(--accent-next);}
-
-    .time{font-weight:900;}
-    .what{font-size:.85em;color:var(--muted);}
-
     .title{
-      font-size:var(--font-xlarge);
-      font-weight:900;
+      font-size:64px;
+      font-weight:700;
       margin:0 0 24px 0;
+      line-height:1.05;
+    }
+
+    .subtitle{
+      font-size:28px;
+      opacity:.75;
+      margin:0 0 32px 0;
+    }
+
+    .big{
+      font-size:36px;
+      line-height:1.3;
+    }
+
+    /* Simpele layout helpers */
+    .grid2{
+      display:grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 32px;
+      height: calc(100vh - (var(--pad) * 2) - 130px);
     }
 
     .card{
-      border:2px solid var(--line);
-      border-radius:var(--radius);
-      padding:24px;
-      height:calc(100vh - (var(--pad)*2) - 120px);
+      border: 2px solid #eee;
+      border-radius: 24px;
+      padding: 28px;
+      box-sizing: border-box;
+      height: 100%;
+    }
+
+    .card h2{
+      margin:0 0 16px 0;
+      font-size:36px;
     }
 
     .row{
       display:flex;
       justify-content:space-between;
-      padding:16px 0;
-      border-bottom:1px solid var(--line);
+      gap:24px;
+      font-size:30px;
+      padding:14px 0;
+      border-bottom:1px solid #f1f1f1;
     }
 
-    .promo{
-      height:calc(100vh - (var(--pad)*2));
-      border:2px dashed var(--line);
-      border-radius:var(--radius);
+    .muted{
+      opacity:.7;
+    }
+
+    /* Promo slides (full page binnen promo screen) */
+    .promo-slide{
+      position:absolute;
+      inset:0;
+      padding: var(--pad);
+      box-sizing:border-box;
+      display:none;
+    }
+    .promo-slide.active{
+      display:block;
+    }
+
+    .promo-wrap{
+      height: calc(100vh - (var(--pad) * 2));
+      border-radius: 36px;
+      padding: 48px;
+      box-sizing:border-box;
       display:flex;
-      align-items:center;
-      justify-content:center;
-      font-size:var(--font-large);
-      color:var(--muted);
+      flex-direction:column;
+      justify-content:flex-end;
+      border: 2px solid rgba(0,0,0,.08);
     }
 
+    .promo-kicker{
+      font-size:26px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      opacity:.85;
+      margin:0 0 12px 0;
+    }
+
+    .promo-title{
+      font-size:84px;
+      font-weight:800;
+      margin:0 0 18px 0;
+      line-height:1.0;
+    }
+
+    .promo-meta{
+      font-size:34px;
+      opacity:.9;
+      margin:0;
+    }
+
+    /* Kleine status onderaan (voor test) */
     .status{
       position:fixed;
-      left:var(--pad);
-      bottom:16px;
-      font-size:16px;
+      left: var(--pad);
+      bottom: 28px;
+      font-size:20px;
       opacity:.55;
     }
   </style>
@@ -180,224 +146,144 @@
 
 <body>
 
-<section class="screen active" id="screen-plan-1">
-  <div class="header">
-    <div class="brand">
-      <img src="./assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron">
-      <h1>Zaalplanning</h1>
-    </div>
-    <div class="meta">
-      <div id="clockTop">—</div>
-      <div id="dataState">Data: laden…</div>
-    </div>
-  </div>
+  <!-- SCREEN 1: PLANNING -->
+  <section class="screen active" id="screen-planning">
+    <h1 class="title">Lokalenplanning</h1>
+    <p class="subtitle">Testdata — later via Yesplan API</p>
 
-  <div class="planning-wrap">
-    <div class="rooms" id="roomsPage1">
-      <!-- JS vult dit -->
-    </div>
-  </div>
-</section>
+    <div class="grid2">
+      <div class="card">
+        <h2>Vandaag</h2>
 
-<section class="screen" id="screen-plan-2">
-  <div class="header">
-    <div class="brand">
-      <img src="./assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron">
-      <h1>Zaalplanning</h1>
-    </div>
-    <div class="meta">
-      <div id="clockTop2">—</div>
-      <div id="dataState2">Data: laden…</div>
-    </div>
-  </div>
+        <div class="row"><span>Zaal</span><span class="muted">10:00–12:00 · Workshop</span></div>
+        <div class="row"><span>Studio</span><span class="muted">12:30–14:00 · Repetitie</span></div>
+        <div class="row"><span>Foyer</span><span class="muted">14:30–16:00 · Overleg</span></div>
+        <div class="row"><span>Polyvalente</span><span class="muted">18:00–22:30 · Voorstelling</span></div>
 
-  <div class="planning-wrap">
-    <div class="rooms" id="roomsPage2">
-      <!-- JS vult dit -->
-    </div>
-  </div>
-</section>
-
-<section class="screen" id="screen-agenda">
-  <h1 class="title">Agenda</h1>
-  <div class="card">
-    <div class="row"><strong>Later</strong><span>Agenda komt hier</span></div>
-  </div>
-</section>
-
-<section class="screen" id="screen-promo">
-  <div class="promo">Promo’s volgen later</div>
-</section>
-
-<div class="status" id="status">—</div>
-
-<script>
-  // =============================
-  // CONFIG
-  // =============================
-  // VUL HIER JE WORKER URL IN:
-  const WORKER_BASE = "https://JOUW-WORKER-URL.workers.dev";
-
-  // Updatefrequentie: elke 2 minuten
-  const DATA_REFRESH_MS = 2 * 60 * 1000;
-
-  // Schermrotatie
-  const SCREEN_SECONDS = 15;
-
-  // Zaalvolgorde (hardcoded)
-  const ROOM_ORDER = [
-    "Stadsschouwburg",
-    "theaterzaal",
-    "polyvalente zaal",
-    "vergaderlokaal 1",
-    "vergaderlokaal 2",
-    "vergaderlokaal 3",
-    "vergaderlokaal 4",
-    "vergaderlokaal A",
-    "repetitieruimte",
-  ];
-
-  // Pagina-indeling: 6 op pagina 1, rest op pagina 2
-  const PAGE1 = ROOM_ORDER.slice(0, 6);
-  const PAGE2 = ROOM_ORDER.slice(6);
-
-  // =============================
-  // HELPERS
-  // =============================
-  function fmtTimeRange(startIso, endIso){
-    if(!startIso || !endIso) return "—";
-    const s = new Date(startIso);
-    const e = new Date(endIso);
-    const hhmm = (d) => d.toLocaleTimeString("nl-BE", { hour:"2-digit", minute:"2-digit" });
-    return `${hhmm(s)}–${hhmm(e)}`;
-  }
-
-  function safeText(v, fallback=""){
-    if(v === null || v === undefined) return fallback;
-    const t = String(v).trim();
-    return t.length ? t : fallback;
-  }
-
-  function renderRoomCard(roomName, current, next){
-    const curTime = current ? fmtTimeRange(current.start, current.end) : "—";
-    const curTitle = current ? safeText(current.title, "Activiteit") : "Geen activiteit";
-    const nextTime = next ? fmtTimeRange(next.start, next.end) : "";
-    const nextTitle = next ? safeText(next.title, "Activiteit") : "";
-
-    // Belangrijk: STRAKS vak blijft bestaan, maar inhoud kan leeg zijn.
-    return `
-      <div class="room">
-        <div class="room-name">${roomName}</div>
-
-        <div class="slot">
-          <span class="badge now">NU</span>
-          <div class="time">${curTime}</div>
-          <div class="what">${curTitle}</div>
-        </div>
-
-        <div class="slot">
-          ${next ? `<span class="badge next">STRAKS</span>
-                    <div class="time">${nextTime}</div>
-                    <div class="what">${nextTitle}</div>` : ``}
-        </div>
+        <p class="muted" style="margin-top:18px; font-size:22px;">
+          (Later: per lokaal “nu” en “straks”, en alleen de eerstvolgende items.)
+        </p>
       </div>
-    `;
-  }
 
-  function setDataState(text){
-    document.getElementById("dataState").textContent = text;
-    document.getElementById("dataState2").textContent = text;
-  }
+      <div class="card">
+        <h2>Nu</h2>
+        <p class="big" id="clock">tijd…</p>
+        <p class="big">✅ URL draait</p>
+        <p class="muted" style="font-size:22px;">Auto-refresh elke 5 minuten</p>
+      </div>
+    </div>
+  </section>
 
-  // =============================
-  // CLOCK
-  // =============================
-  function tick(){
-    const d = new Date();
-    const txt = d.toLocaleString("nl-BE",{
-      weekday:"long", day:"numeric", month:"long",
-      hour:"2-digit", minute:"2-digit"
-    });
-    document.getElementById("clockTop").textContent = txt;
-    document.getElementById("clockTop2").textContent = txt;
-  }
-  tick();
-  setInterval(tick, 1000);
+  <!-- SCREEN 2: AGENDA -->
+  <section class="screen" id="screen-agenda">
+    <h1 class="title">Agenda</h1>
+    <p class="subtitle">Testdata — later uit Excel/Yesplan/website</p>
 
-  // =============================
-  // DATA FETCH
-  // =============================
-  let lastPayload = null;
+    <div class="card" style="height: calc(100vh - (var(--pad) * 2) - 130px);">
+      <div class="row"><span>vr 13 feb</span><span>Comedy Night · 20:00</span></div>
+      <div class="row"><span>za 14 feb</span><span>Familiefilm · 14:30</span></div>
+      <div class="row"><span>do 19 feb</span><span>Concert · 20:00</span></div>
+      <div class="row"><span>zo 22 feb</span><span>Workshop · 10:00</span></div>
 
-  async function fetchPlanning(){
-    const today = new Date().toISOString().slice(0, 10);
-    const url = `${WORKER_BASE}/planning?date=${today}`;
+      <p class="muted" style="margin-top:18px; font-size:22px;">
+        (Later: sorteren op datum, filter op “publiek”, en max. aantal items.)
+      </p>
+    </div>
+  </section>
 
-    try{
-      setDataState("Data: laden…");
-      const res = await fetch(url, { cache: "no-store" });
-      if(!res.ok){
-        setDataState(`Data: fout (${res.status})`);
-        return;
-      }
-      const data = await res.json();
-      lastPayload = data;
+  <!-- SCREEN 3: PROMO (met meerdere full-page slides) -->
+  <section class="screen" id="screen-promo">
+    <div class="promo-slide active" data-promo="0">
+      <div class="promo-wrap" style="background:#f4f4ff;">
+        <p class="promo-kicker">Promo</p>
+        <h1 class="promo-title">Voorstelling A</h1>
+        <p class="promo-meta">Vrijdag 13 feb · 20:00 · Grote zaal</p>
+      </div>
+    </div>
 
-      // Map per zaal
-      const map = new Map();
-      for(const r of (data.rooms || [])){
-        map.set(r.room, r);
-      }
+    <div class="promo-slide" data-promo="1">
+      <div class="promo-wrap" style="background:#fff4f4;">
+        <p class="promo-kicker">Promo</p>
+        <h1 class="promo-title">Voorstelling B</h1>
+        <p class="promo-meta">Zaterdag 14 feb · 14:30 · Filmzaal</p>
+      </div>
+    </div>
 
-      // Render pagina 1 en 2
-      const html1 = PAGE1.map(name => {
-        const item = map.get(name) || { current:null, next:null };
-        return renderRoomCard(name, item.current, item.next);
-      }).join("");
+    <div class="promo-slide" data-promo="2">
+      <div class="promo-wrap" style="background:#f4fff7;">
+        <p class="promo-kicker">Promo</p>
+        <h1 class="promo-title">Voorstelling C</h1>
+        <p class="promo-meta">Donderdag 19 feb · 20:00 · Foyer</p>
+      </div>
+    </div>
+  </section>
 
-      const html2 = PAGE2.map(name => {
-        const item = map.get(name) || { current:null, next:null };
-        return renderRoomCard(name, item.current, item.next);
-      }).join("");
+  <div class="status" id="status">status…</div>
 
-      document.getElementById("roomsPage1").innerHTML = html1;
-      document.getElementById("roomsPage2").innerHTML = html2;
-
-      setDataState("Data: OK");
-    } catch(e){
-      setDataState("Data: fout (netwerk)");
+  <script>
+    // 1) klok
+    function tick(){
+      const d = new Date();
+      document.getElementById("clock").textContent =
+        d.toLocaleString("nl-BE", {
+          weekday:"long", year:"numeric", month:"long", day:"numeric",
+          hour:"2-digit", minute:"2-digit"
+        });
     }
-  }
+    tick();
+    setInterval(tick, 1000);
 
-  // eerste load + refresh
-  fetchPlanning();
-  setInterval(fetchPlanning, DATA_REFRESH_MS);
+    // 2) auto-refresh als failsafe
+    setTimeout(() => location.reload(), 5 * 60 * 1000);
 
-  // =============================
-  // SCREEN ROTATION
-  // =============================
-  const screens = ["screen-plan-1","screen-plan-2","screen-agenda","screen-promo"];
-  const labels  = ["Planning 1","Planning 2","Agenda","Promo"];
-  let i = 0;
+    // 3) hoofdscreens rotatie
+    const screens = ["screen-planning", "screen-agenda", "screen-promo"];
+    let screenIndex = 0;
 
-  function showScreen(idx){
-    screens.forEach((id, j) => {
-      document.getElementById(id).classList.toggle("active", j === idx);
-    });
-    document.getElementById("status").textContent = "Scherm: " + labels[idx];
-    i = idx;
-  }
+    function showScreen(idx){
+      screens.forEach((id, i) => {
+        document.getElementById(id).classList.toggle("active", i === idx);
+      });
+      screenIndex = idx;
+      updateStatus();
+    }
 
-  showScreen(0);
+    // 4) promo rotatie (alleen relevant wanneer promo-screen actief is)
+    const promoSlides = Array.from(document.querySelectorAll(".promo-slide"));
+    let promoIndex = 0;
 
-  setInterval(() => {
-    const next = (i + 1) % screens.length;
-    showScreen(next);
-  }, SCREEN_SECONDS * 1000);
+    function showPromo(idx){
+      promoSlides.forEach((el, i) => {
+        el.classList.toggle("active", i === idx);
+      });
+      promoIndex = idx;
+      updateStatus();
+    }
 
-  // failsafe reload (zoals eerder)
-  setTimeout(()=>location.reload(), 10 * 60 * 1000);
-</script>
+    function updateStatus(){
+      const sName = ["Planning", "Agenda", "Promo"][screenIndex];
+      const pName = promoSlides.length ? ` · Promo ${promoIndex+1}/${promoSlides.length}` : "";
+      document.getElementById("status").textContent = `Scherm: ${sName}${screenIndex===2 ? pName : ""}`;
+    }
+    updateStatus();
+
+    // Timing (later makkelijk aanpassen)
+    const SCREEN_SECONDS = 15; // hoe lang elk hoofdscherm blijft staan
+    const PROMO_SECONDS  = 8;  // hoe lang elke promo-slide blijft staan
+
+    // Hoofdrotatie
+    setInterval(() => {
+      const next = (screenIndex + 1) % screens.length;
+      showScreen(next);
+    }, SCREEN_SECONDS * 1000);
+
+    // Promo-rotatie: loopt continu, maar je ziet het enkel wanneer promo-screen actief is
+    setInterval(() => {
+      if (promoSlides.length === 0) return;
+      const next = (promoIndex + 1) % promoSlides.length;
+      showPromo(next);
+    }, PROMO_SECONDS * 1000);
+  </script>
 
 </body>
 </html>
