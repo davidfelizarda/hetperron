@@ -6,27 +6,29 @@
   <title>Het Perron — Screen</title>
 
   <style>
-  :root{
-  --pad: 64px;
+    :root{
+      --pad: 64px;
 
-  /* TV-leesbaarheid */
-  --font-base: 28px;
-  --font-small: 22px;
-  --font-large: 36px;
-  --font-xlarge: 64px;
-}
+      /* TV-leesbaarheid (pas deze later gerust aan) */
+      --font-base: 30px;
+      --font-small: 24px;
+      --font-large: 40px;
+      --font-xlarge: 72px;
+    }
 
+    html, body{
+      width:100vw;
+      height:100vh;
+    }
 
-body{
-  margin:0;
-  font-family: Arial, sans-serif;
-  background:#ffffff;
-  color:#111;
-  overflow:hidden;
-  font-size: var(--font-base);
-}
-
-
+    body{
+      margin:0;
+      font-family: Arial, sans-serif;
+      background:#ffffff;
+      color:#111;
+      overflow:hidden;
+      font-size: var(--font-base);
+    }
 
     /* Elke "screen" is full page */
     .screen{
@@ -41,26 +43,23 @@ body{
       display:block;
     }
 
- .title{
-  font-size:64px;
-  font-weight:700;
-  margin:0 0 24px 0;
-  line-height:1.05;
-}
+    .title{
+      font-size: var(--font-xlarge);
+      font-weight: 800;
+      margin: 0 0 20px 0;
+      line-height: 1.05;
+    }
 
-
-   .subtitle{
-  font-size:28px;
-  opacity:.75;
-  margin:0 0 32px 0;
-}
-
+    .subtitle{
+      font-size: var(--font-small);
+      opacity: .7;
+      margin: 0 0 24px 0;
+    }
 
     .big{
-  font-size: var(--font-large);
-  line-height:1.25;
-}
-
+      font-size: var(--font-large);
+      line-height: 1.25;
+    }
 
     /* Simpele layout helpers */
     .grid2{
@@ -79,17 +78,17 @@ body{
     }
 
     .card h2{
-      margin:0 0 16px 0;
-      font-size:36px;
+      margin: 0 0 16px 0;
+      font-size: 1.25em;
     }
 
     .row{
       display:flex;
       justify-content:space-between;
       gap:24px;
-      font-size:30px;
-      padding:14px 0;
-      border-bottom:1px solid #f1f1f1;
+      font-size: 1.1em; /* schaalt mee met body */
+      padding: 14px 0;
+      border-bottom: 1px solid #f1f1f1;
     }
 
     .muted{
@@ -120,7 +119,7 @@ body{
     }
 
     .promo-kicker{
-      font-size:26px;
+      font-size: var(--font-small);
       letter-spacing:.08em;
       text-transform:uppercase;
       opacity:.85;
@@ -128,15 +127,14 @@ body{
     }
 
     .promo-title{
-  font-size: 96px;
-  font-weight:900;
-  margin:0 0 16px 0;
-  line-height:1.0;
-}
-
+      font-size: 96px;   /* bewust groot */
+      font-weight: 900;
+      margin: 0 0 16px 0;
+      line-height: 1.0;
+    }
 
     .promo-meta{
-      font-size:34px;
+      font-size: var(--font-large);
       opacity:.9;
       margin:0;
     }
@@ -146,7 +144,7 @@ body{
       position:fixed;
       left: var(--pad);
       bottom: 28px;
-      font-size:20px;
+      font-size: 20px;
       opacity:.55;
     }
   </style>
@@ -168,7 +166,7 @@ body{
         <div class="row"><span>Foyer</span><span class="muted">14:30–16:00 · Overleg</span></div>
         <div class="row"><span>Polyvalente</span><span class="muted">18:00–22:30 · Voorstelling</span></div>
 
-        <p class="muted" style="margin-top:18px; font-size:22px;">
+        <p class="muted" style="margin-top:18px; font-size:var(--font-small);">
           (Later: per lokaal “nu” en “straks”, en alleen de eerstvolgende items.)
         </p>
       </div>
@@ -177,7 +175,7 @@ body{
         <h2>Nu</h2>
         <p class="big" id="clock">tijd…</p>
         <p class="big">✅ URL draait</p>
-        <p class="muted" style="font-size:22px;">Auto-refresh elke 5 minuten</p>
+        <p class="muted" style="font-size:var(--font-small);">Auto-refresh elke 5 minuten</p>
       </div>
     </div>
   </section>
@@ -193,7 +191,7 @@ body{
       <div class="row"><span>do 19 feb</span><span>Concert · 20:00</span></div>
       <div class="row"><span>zo 22 feb</span><span>Workshop · 10:00</span></div>
 
-      <p class="muted" style="margin-top:18px; font-size:22px;">
+      <p class="muted" style="margin-top:18px; font-size:var(--font-small);">
         (Later: sorteren op datum, filter op “publiek”, en max. aantal items.)
       </p>
     </div>
@@ -256,7 +254,7 @@ body{
       updateStatus();
     }
 
-    // 4) promo rotatie (alleen relevant wanneer promo-screen actief is)
+    // 4) promo rotatie
     const promoSlides = Array.from(document.querySelectorAll(".promo-slide"));
     let promoIndex = 0;
 
@@ -276,16 +274,14 @@ body{
     updateStatus();
 
     // Timing (later makkelijk aanpassen)
-    const SCREEN_SECONDS = 15; // hoe lang elk hoofdscherm blijft staan
-    const PROMO_SECONDS  = 8;  // hoe lang elke promo-slide blijft staan
+    const SCREEN_SECONDS = 15; // hoofdschermen
+    const PROMO_SECONDS  = 8;  // promo slides
 
-    // Hoofdrotatie
     setInterval(() => {
       const next = (screenIndex + 1) % screens.length;
       showScreen(next);
     }, SCREEN_SECONDS * 1000);
 
-    // Promo-rotatie: loopt continu, maar je ziet het enkel wanneer promo-screen actief is
     setInterval(() => {
       if (promoSlides.length === 0) return;
       const next = (promoIndex + 1) % promoSlides.length;
