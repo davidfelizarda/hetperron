@@ -24,10 +24,7 @@
       --font-xlarge:60px;
     }
 
-    html,body{
-      width:100vw;
-      height:100vh;
-    }
+    html,body{ width:100vw; height:100vh; }
 
     body{
       margin:0;
@@ -47,7 +44,6 @@
     }
     .screen.active{display:block;}
 
-    /* ===== HEADER ===== */
     .header{
       background:var(--perron-blue);
       color:#fff;
@@ -88,7 +84,6 @@
       line-height:1.2;
     }
 
-    /* ===== ZAALPLANNING ===== */
     .planning-wrap{
       height:calc(100vh - (var(--pad)*2) - 110px);
     }
@@ -136,14 +131,12 @@
       border-radius:999px;
       width:fit-content;
     }
-
     .badge.now{background:var(--accent-now);}
     .badge.next{background:var(--accent-next);}
 
     .time{font-weight:900;}
     .what{font-size:.85em;color:var(--muted);}
 
-    /* ===== AGENDA / PROMO PLACEHOLDERS ===== */
     .title{
       font-size:var(--font-xlarge);
       font-weight:900;
@@ -187,7 +180,6 @@
 
 <body>
 
-<!-- ===== SCREEN 1: ZAALPLANNING (1–6) ===== -->
 <section class="screen active" id="screen-plan-1">
   <div class="header">
     <div class="brand">
@@ -196,54 +188,17 @@
     </div>
     <div class="meta">
       <div id="clockTop">—</div>
-      <div>Live overzicht</div>
+      <div id="dataState">Data: laden…</div>
     </div>
   </div>
 
   <div class="planning-wrap">
-    <div class="rooms">
-
-      <div class="room">
-        <div class="room-name">Stadsschouwburg</div>
-        <div class="slot"><span class="badge now">NU</span><div class="time">10:00–12:00</div><div class="what">Voorstelling</div></div>
-        <div class="slot"></div>
-      </div>
-
-      <div class="room">
-        <div class="room-name">Theaterzaal</div>
-        <div class="slot"><span class="badge now">NU</span><div class="time">11:00–12:00</div><div class="what">Workshop</div></div>
-        <div class="slot"><span class="badge next">STRAKS</span><div class="time">13:00–15:00</div><div class="what">Repetitie</div></div>
-      </div>
-
-      <div class="room">
-        <div class="room-name">Polyvalente zaal</div>
-        <div class="slot"><span class="badge now">NU</span><div class="time">09:00–11:00</div><div class="what">Opbouw</div></div>
-        <div class="slot"></div>
-      </div>
-
-      <div class="room">
-        <div class="room-name">Vergaderlokaal 1</div>
-        <div class="slot"><span class="badge now">NU</span><div class="time">10:00–11:30</div><div class="what">Overleg</div></div>
-        <div class="slot"></div>
-      </div>
-
-      <div class="room">
-        <div class="room-name">Vergaderlokaal 2</div>
-        <div class="slot"><span class="badge now">NU</span><div class="time">10:30–12:00</div><div class="what">Vergadering</div></div>
-        <div class="slot"></div>
-      </div>
-
-      <div class="room">
-        <div class="room-name">Vergaderlokaal 3</div>
-        <div class="slot"><span class="badge now">NU</span><div class="time">09:30–11:00</div><div class="what">Overleg</div></div>
-        <div class="slot"></div>
-      </div>
-
+    <div class="rooms" id="roomsPage1">
+      <!-- JS vult dit -->
     </div>
   </div>
 </section>
 
-<!-- ===== SCREEN 2: ZAALPLANNING (7–9) ===== -->
 <section class="screen" id="screen-plan-2">
   <div class="header">
     <div class="brand">
@@ -252,45 +207,24 @@
     </div>
     <div class="meta">
       <div id="clockTop2">—</div>
-      <div>Live overzicht</div>
+      <div id="dataState2">Data: laden…</div>
     </div>
   </div>
 
   <div class="planning-wrap">
-    <div class="rooms">
-
-      <div class="room">
-        <div class="room-name">Vergaderlokaal 4</div>
-        <div class="slot"><span class="badge now">NU</span><div class="time">10:00–11:30</div><div class="what">Overleg</div></div>
-        <div class="slot"></div>
-      </div>
-
-      <div class="room">
-        <div class="room-name">Vergaderlokaal A</div>
-        <div class="slot"><span class="badge now">NU</span><div class="time">11:00–12:30</div><div class="what">Workshop</div></div>
-        <div class="slot"></div>
-      </div>
-
-      <div class="room">
-        <div class="room-name">Repetitieruimte</div>
-        <div class="slot"><span class="badge now">NU</span><div class="time">09:00–13:00</div><div class="what">Repetitie</div></div>
-        <div class="slot"></div>
-      </div>
-
+    <div class="rooms" id="roomsPage2">
+      <!-- JS vult dit -->
     </div>
   </div>
 </section>
 
-<!-- ===== SCREEN 3: AGENDA ===== -->
 <section class="screen" id="screen-agenda">
   <h1 class="title">Agenda</h1>
   <div class="card">
-    <div class="row"><strong>vr 13 feb</strong><span>Comedy Night · 20:00</span></div>
-    <div class="row"><strong>za 14 feb</strong><span>Familiefilm · 14:30</span></div>
+    <div class="row"><strong>Later</strong><span>Agenda komt hier</span></div>
   </div>
 </section>
 
-<!-- ===== SCREEN 4: PROMO ===== -->
 <section class="screen" id="screen-promo">
   <div class="promo">Promo’s volgen later</div>
 </section>
@@ -298,31 +232,171 @@
 <div class="status" id="status">—</div>
 
 <script>
+  // =============================
+  // CONFIG
+  // =============================
+  // VUL HIER JE WORKER URL IN:
+  const WORKER_BASE = "https://JOUW-WORKER-URL.workers.dev";
+
+  // Updatefrequentie: elke 2 minuten
+  const DATA_REFRESH_MS = 2 * 60 * 1000;
+
+  // Schermrotatie
+  const SCREEN_SECONDS = 15;
+
+  // Zaalvolgorde (hardcoded)
+  const ROOM_ORDER = [
+    "Stadsschouwburg",
+    "theaterzaal",
+    "polyvalente zaal",
+    "vergaderlokaal 1",
+    "vergaderlokaal 2",
+    "vergaderlokaal 3",
+    "vergaderlokaal 4",
+    "vergaderlokaal A",
+    "repetitieruimte",
+  ];
+
+  // Pagina-indeling: 6 op pagina 1, rest op pagina 2
+  const PAGE1 = ROOM_ORDER.slice(0, 6);
+  const PAGE2 = ROOM_ORDER.slice(6);
+
+  // =============================
+  // HELPERS
+  // =============================
+  function fmtTimeRange(startIso, endIso){
+    if(!startIso || !endIso) return "—";
+    const s = new Date(startIso);
+    const e = new Date(endIso);
+    const hhmm = (d) => d.toLocaleTimeString("nl-BE", { hour:"2-digit", minute:"2-digit" });
+    return `${hhmm(s)}–${hhmm(e)}`;
+  }
+
+  function safeText(v, fallback=""){
+    if(v === null || v === undefined) return fallback;
+    const t = String(v).trim();
+    return t.length ? t : fallback;
+  }
+
+  function renderRoomCard(roomName, current, next){
+    const curTime = current ? fmtTimeRange(current.start, current.end) : "—";
+    const curTitle = current ? safeText(current.title, "Activiteit") : "Geen activiteit";
+    const nextTime = next ? fmtTimeRange(next.start, next.end) : "";
+    const nextTitle = next ? safeText(next.title, "Activiteit") : "";
+
+    // Belangrijk: STRAKS vak blijft bestaan, maar inhoud kan leeg zijn.
+    return `
+      <div class="room">
+        <div class="room-name">${roomName}</div>
+
+        <div class="slot">
+          <span class="badge now">NU</span>
+          <div class="time">${curTime}</div>
+          <div class="what">${curTitle}</div>
+        </div>
+
+        <div class="slot">
+          ${next ? `<span class="badge next">STRAKS</span>
+                    <div class="time">${nextTime}</div>
+                    <div class="what">${nextTitle}</div>` : ``}
+        </div>
+      </div>
+    `;
+  }
+
+  function setDataState(text){
+    document.getElementById("dataState").textContent = text;
+    document.getElementById("dataState2").textContent = text;
+  }
+
+  // =============================
+  // CLOCK
+  // =============================
   function tick(){
     const d = new Date();
-    const t = d.toLocaleString("nl-BE",{
-      weekday:"long",day:"numeric",month:"long",
-      hour:"2-digit",minute:"2-digit"
+    const txt = d.toLocaleString("nl-BE",{
+      weekday:"long", day:"numeric", month:"long",
+      hour:"2-digit", minute:"2-digit"
     });
-    document.getElementById("clockTop").textContent = t;
-    document.getElementById("clockTop2").textContent = t;
+    document.getElementById("clockTop").textContent = txt;
+    document.getElementById("clockTop2").textContent = txt;
   }
   tick();
-  setInterval(tick,1000);
+  setInterval(tick, 1000);
 
-  const screens=["screen-plan-1","screen-plan-2","screen-agenda","screen-promo"];
-  let i=0;
+  // =============================
+  // DATA FETCH
+  // =============================
+  let lastPayload = null;
 
-  setInterval(()=>{
-    screens.forEach((id,idx)=>{
-      document.getElementById(id).classList.toggle("active",idx===i);
+  async function fetchPlanning(){
+    const today = new Date().toISOString().slice(0, 10);
+    const url = `${WORKER_BASE}/planning?date=${today}`;
+
+    try{
+      setDataState("Data: laden…");
+      const res = await fetch(url, { cache: "no-store" });
+      if(!res.ok){
+        setDataState(`Data: fout (${res.status})`);
+        return;
+      }
+      const data = await res.json();
+      lastPayload = data;
+
+      // Map per zaal
+      const map = new Map();
+      for(const r of (data.rooms || [])){
+        map.set(r.room, r);
+      }
+
+      // Render pagina 1 en 2
+      const html1 = PAGE1.map(name => {
+        const item = map.get(name) || { current:null, next:null };
+        return renderRoomCard(name, item.current, item.next);
+      }).join("");
+
+      const html2 = PAGE2.map(name => {
+        const item = map.get(name) || { current:null, next:null };
+        return renderRoomCard(name, item.current, item.next);
+      }).join("");
+
+      document.getElementById("roomsPage1").innerHTML = html1;
+      document.getElementById("roomsPage2").innerHTML = html2;
+
+      setDataState("Data: OK");
+    } catch(e){
+      setDataState("Data: fout (netwerk)");
+    }
+  }
+
+  // eerste load + refresh
+  fetchPlanning();
+  setInterval(fetchPlanning, DATA_REFRESH_MS);
+
+  // =============================
+  // SCREEN ROTATION
+  // =============================
+  const screens = ["screen-plan-1","screen-plan-2","screen-agenda","screen-promo"];
+  const labels  = ["Planning 1","Planning 2","Agenda","Promo"];
+  let i = 0;
+
+  function showScreen(idx){
+    screens.forEach((id, j) => {
+      document.getElementById(id).classList.toggle("active", j === idx);
     });
-    document.getElementById("status").textContent=
-      "Scherm: "+["Planning 1","Planning 2","Agenda","Promo"][i];
-    i=(i+1)%screens.length;
-  },15000);
+    document.getElementById("status").textContent = "Scherm: " + labels[idx];
+    i = idx;
+  }
 
-  setTimeout(()=>location.reload(),5*60*1000);
+  showScreen(0);
+
+  setInterval(() => {
+    const next = (i + 1) % screens.length;
+    showScreen(next);
+  }, SCREEN_SECONDS * 1000);
+
+  // failsafe reload (zoals eerder)
+  setTimeout(()=>location.reload(), 10 * 60 * 1000);
 </script>
 
 </body>
