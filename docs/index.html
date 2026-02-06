@@ -26,7 +26,8 @@
       --r-lg:22px;
       --r-md:16px;
 
-      --pad:54px;
+      /* ✅ iets minder padding zodat 3 rijen altijd passen */
+      --pad:48px;
     }
 
     *{ box-sizing:border-box; }
@@ -63,7 +64,7 @@
     .header{
       background:var(--brand-blue);
       border-radius: var(--r-xl);
-      padding:42px;
+      padding:38px; /* ✅ iets compacter */
       color:#fff;
       display:grid;
       grid-template-columns: 1fr auto;
@@ -74,11 +75,11 @@
       display:flex;
       flex-direction:column;
       align-items:flex-start;
-      gap:14px;
+      gap:12px;
     }
 
     .logo{
-      height:52px;
+      height:50px;
       width:auto;
       max-width:520px;
       object-fit:contain;
@@ -86,7 +87,7 @@
     }
 
     .title{
-      font-size:84px;
+      font-size:78px; /* ✅ iets kleiner */
       line-height:0.95;
       font-weight:800;
       margin:0;
@@ -96,7 +97,7 @@
 
     .header-right{
       text-align:right;
-      font-size:30px;
+      font-size:28px; /* ✅ iets kleiner */
       line-height:1.15;
       opacity:.95;
     }
@@ -105,17 +106,17 @@
 
     /* === SCREEN 1: Planning grid === */
     .grid{
-      margin-top:36px;
+      margin-top:26px;   /* ✅ kleiner */
       display:grid;
       grid-template-columns: 1fr 1fr;
-      gap:26px;
+      gap:22px;          /* ✅ kleiner */
     }
 
     .room-card{
       background:var(--card);
       border:2px solid var(--border);
       border-radius: var(--r-lg);
-      padding:22px;
+      padding:20px;      /* ✅ kleiner */
       min-height:0;
     }
 
@@ -124,35 +125,42 @@
       align-items:flex-start;
       justify-content:space-between;
       gap:10px;
-      margin-bottom:18px;
+      margin-bottom:14px; /* ✅ kleiner */
     }
 
     .room-name{
-      font-size:44px;
+      font-size:40px;     /* ✅ kleiner */
       line-height:1.05;
       font-weight:800;
       margin:0;
       letter-spacing:-0.01em;
     }
 
+    /* ✅ Compacter zodat 6 cards altijd passen */
     .slot{
       border:2px solid var(--border);
       border-radius: var(--r-md);
-      padding:16px 16px 24px 16px;
-      margin-top:14px;
-      min-height: 220px;
+      padding:14px 14px 16px 14px; /* ✅ compacter */
+      margin-top:12px;             /* ✅ compacter */
+      min-height: 156px;           /* ✅ compacter */
       display:flex;
       flex-direction:column;
       justify-content:flex-start;
-      gap:10px;
+      gap:8px;
+    }
+
+    /* ✅ Alleen bij lange titels: iets meer ruimte, maar niet té veel */
+    .room-card.long .slot{
+      min-height: 184px;
+      padding-bottom:20px;
     }
 
     .pill{
       align-self:flex-start;
       font-weight:900;
       letter-spacing:1px;
-      font-size:22px;
-      padding:8px 16px;
+      font-size:20px;     /* ✅ kleiner */
+      padding:7px 14px;   /* ✅ kleiner */
       border-radius:999px;
       color:var(--pill-text);
       text-transform:uppercase;
@@ -161,7 +169,7 @@
     .pill.next{ background:var(--pill-next); }
 
     .time{
-      font-size:52px;
+      font-size:46px;     /* ✅ kleiner */
       line-height:1;
       font-weight:900;
       letter-spacing:-0.5px;
@@ -169,7 +177,7 @@
     }
 
     .name{
-      font-size:34px;
+      font-size:30px;     /* ✅ kleiner */
       line-height:1.12;
       color:#2B2B2B;
       margin:0;
@@ -180,8 +188,8 @@
       -webkit-line-clamp: 3;
       overflow:hidden;
     }
-    .name.small{ font-size:28px; }
-    .name.tiny{ font-size:24px; }
+    .name.small{ font-size:26px; }
+    .name.tiny{ font-size:22px; }
 
     .slot.empty .pill{ opacity:.28; }
     .slot.empty .time,
@@ -189,11 +197,11 @@
 
     /* === SCREEN 2: Agenda list === */
     .agenda-wrap{
-      margin-top:36px;
+      margin-top:28px;
       border:2px solid var(--border);
       border-radius: var(--r-xl);
       padding:28px;
-      height: 1460px; /* vaste hoogte voor nette signage */
+      height: 1460px;
       overflow:hidden;
       background:#fff;
     }
@@ -229,7 +237,7 @@
 
     .agenda-row{
       display:grid;
-      grid-template-columns: 240px 140px 1fr; /* Datum | Tijd | Naam+genre */
+      grid-template-columns: 240px 140px 1fr;
       gap:18px;
       padding:18px 18px;
       border:2px solid var(--border);
@@ -283,7 +291,6 @@
       text-align:center;
     }
 
-    /* Placeholder promo */
     .placeholder{
       margin-top:42px;
       border:2px dashed #D0D0D0;
@@ -366,13 +373,13 @@
     /***********************
      * CONFIG
      ***********************/
-    const WORKER_BASE = "https://hetperron-yesplan-proxy.davidfelizarda.workers.dev/"; // jouw worker
+    const WORKER_BASE = "https://hetperron-yesplan-proxy.davidfelizarda.workers.dev/";
     const ENDPOINT_PLANNING = joinUrl(WORKER_BASE, "planning");
     const ENDPOINT_AGENDA   = joinUrl(WORKER_BASE, "agenda");
 
-    const ROOMS_PER_VIEW = 4;
+    const ROOMS_PER_VIEW = 6;      // ✅ 6 per pagina
     const REFRESH_MS = 2 * 60 * 1000;
-    const ROOMPAGE_MS = 10 * 1000;
+    const ROOMPAGE_MS = 12 * 1000;
 
     const screens = ["screen-planning", "screen-agenda", "screen-promo"];
     const ENABLE_MAIN_ROTATION = false;
@@ -392,25 +399,25 @@
     // Agenda filters
     const AGENDA_PROFILES = new Set(["E_Podium", "E_educatief"]);
     const AGENDA_HIDE_LABEL = /schoolvoorstelling/i;
-    const GENRES = ["muziek","theater","klassiek","familie"]; // uit labels
+    const GENRES = ["muziek","theater","klassiek","familie"];
 
     let lastGoodPlanning = null;
     let lastGoodAgenda = null;
 
-    /***********************
-     * helpers
-     ***********************/
     const TZ = "Europe/Brussels";
+
     function joinUrl(base, path){
       if (!base.endsWith("/")) base += "/";
       return base + path.replace(/^\/+/, "");
     }
+
     function setScaleToFit() {
       const stage = document.getElementById("stage");
       const w = 1080, h = 1920;
       const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
       stage.style.setProperty("--scale", String(scale));
     }
+
     function capitalize(s){ return s ? s[0].toUpperCase() + s.slice(1) : s; }
 
     function nowInBrussels() {
@@ -419,12 +426,12 @@
     }
 
     function todayISO() {
-      return new Date().toLocaleDateString("en-CA", { timeZone: TZ }); // YYYY-MM-DD
+      return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
     }
 
     function addDaysISO(dateISO, days){
       const [y,m,d] = dateISO.split("-").map(Number);
-      const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0)); // midday UTC to avoid DST edges
+      const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0));
       dt.setUTCDate(dt.getUTCDate() + days);
       const yy = dt.getUTCFullYear();
       const mm = String(dt.getUTCMonth()+1).padStart(2,"0");
@@ -440,7 +447,6 @@
     }
 
     function formatDateShortNL(dateISO){
-      // "2026-02-06" -> "vr 6 feb"
       const [y,m,d] = dateISO.split("-").map(Number);
       const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0));
       const w = dt.toLocaleDateString("nl-BE", { weekday:"short" });
@@ -458,9 +464,6 @@
         .replaceAll("'","&#039;");
     }
 
-    /***********************
-     * planning time parsing
-     ***********************/
     function parseTimeToDate(dateISO, hhmm) {
       const [y,m,d] = dateISO.split("-").map(Number);
       const [hh,mm] = String(hhmm).split(":").map(Number);
@@ -482,9 +485,6 @@
       return now >= start && now < end;
     }
 
-    /***********************
-     * planning slots
-     ***********************/
     function buildSlotHTML(type, activity) {
       const isEmpty = !activity;
       const pillLabel = (type === "now") ? "Nu" : "Straks";
@@ -495,15 +495,6 @@
           <p class="name">${isEmpty ? " " : escapeHtml(activity.name)}</p>
         </div>
       `;
-    }
-
-    function applyNameSizing(container){
-      container.querySelectorAll(".name").forEach(el => {
-        const len = el.textContent.trim().length;
-        el.classList.remove("small","tiny");
-        if (len > 70) el.classList.add("small");
-        if (len > 95) { el.classList.remove("small"); el.classList.add("tiny"); }
-      });
     }
 
     function mapToCanonicalRoom(locName) {
@@ -558,10 +549,7 @@
       });
     }
 
-    /***********************
-     * Fetch helpers
-     ***********************/
-    async function fetchArray(url, lastGoodRefSetter, lastGoodValueGetter){
+    async function fetchArray(url, setLastGood, getLastGood){
       try{
         const res = await fetch(url, { cache:"no-store" });
         if(!res.ok){
@@ -570,26 +558,38 @@
         }
         const data = await res.json();
         if(!Array.isArray(data)) throw new Error("Non-array JSON");
-        lastGoodRefSetter(data);
+        setLastGood(data);
         return data;
       }catch(e){
         console.error("fetch failed:", url, e);
-        const fallback = lastGoodValueGetter();
+        const fallback = getLastGood();
         return fallback ? fallback : [];
       }
     }
 
-    /***********************
-     * Agenda mapping
-     ***********************/
+    /* ✅ autosize + long-cards */
+    function applyNameSizingAndLongCards(container){
+      container.querySelectorAll(".room-card").forEach(card => card.classList.remove("long"));
+
+      container.querySelectorAll(".name").forEach(el => {
+        const txt = el.textContent.trim();
+        const len = txt.length;
+        const card = el.closest(".room-card");
+
+        el.classList.remove("small","tiny");
+        if (len > 70) el.classList.add("small");
+        if (len > 95) { el.classList.remove("small"); el.classList.add("tiny"); }
+
+        if (card && len > 85) card.classList.add("long");
+      });
+    }
+
     function pickStartTime(item){
       const ts = item?.["Voorstelling (Tijdschema’s)"];
-      if (ts && typeof ts === "string" && ts.includes("-")) {
-        return ts.split("-")[0].trim(); // "10:00 - 11:30" -> "10:00"
-      }
+      if (ts && typeof ts === "string" && ts.includes("-")) return ts.split("-")[0].trim();
       const t = item?.["Getoonde starttijd"];
       if (typeof t === "string") return t;
-      return t ? String(t).slice(0,5) : ""; // fallback for weird formats
+      return t ? String(t).slice(0,5) : "";
     }
 
     function extractGenre(labelsRaw){
@@ -616,27 +616,22 @@
           const labels = it?.Labels;
           if (labels && AGENDA_HIDE_LABEL.test(String(labels))) return false;
 
-          // safety: must have name + time
           const name = it?.Naam;
           if (!name) return false;
+
           const startT = pickStartTime(it);
           if (!startT) return false;
 
           return true;
         })
-        .map(it => {
-          const dateISO = it.Datum;
-          const startT = pickStartTime(it);
-          return {
-            dateISO,
-            dateLabel: formatDateShortNL(dateISO),
-            startTime: startT,
-            name: String(it.Naam || ""),
-            genre: extractGenre(it.Labels)
-          };
-        });
+        .map(it => ({
+          dateISO: it.Datum,
+          dateLabel: formatDateShortNL(it.Datum),
+          startTime: pickStartTime(it),
+          name: String(it.Naam || ""),
+          genre: extractGenre(it.Labels)
+        }));
 
-      // sort chronologisch: datum + startTime
       filtered.sort((a,b) => {
         if (a.dateISO !== b.dateISO) return a.dateISO.localeCompare(b.dateISO);
         return a.startTime.localeCompare(b.startTime);
@@ -660,7 +655,6 @@
         return;
       }
 
-      // toon bv. max 14 items op één scherm (past netjes)
       const MAX = 14;
       const slice = filtered.slice(0, MAX);
 
@@ -679,9 +673,6 @@
       }).join("");
     }
 
-    /***********************
-     * Rendering planning pages
-     ***********************/
     let roomsAll = [];
     let roomPageIndex = 0;
     let roomPageTimer = null;
@@ -712,7 +703,7 @@
         `;
       }).join("");
 
-      applyNameSizing(grid);
+      applyNameSizingAndLongCards(grid);
 
       pageLabel.textContent = (totalPages > 1)
         ? `Pagina ${roomPageIndex + 1}/${totalPages}`
@@ -730,9 +721,6 @@
       }, ROOMPAGE_MS);
     }
 
-    /***********************
-     * MAIN REFRESH LOOP
-     ***********************/
     async function refreshAll() {
       const today = nowInBrussels();
       document.getElementById("todayLabel").textContent = formatTodayLabel(today);
@@ -741,7 +729,6 @@
 
       const dateISO = todayISO();
 
-      // planning
       const planningItems = await fetchArray(
         ENDPOINT_PLANNING,
         (d)=>{ lastGoodPlanning = d; },
@@ -752,7 +739,6 @@
       renderRoomPage();
       startRoomPagination();
 
-      // agenda
       const agendaItems = await fetchArray(
         ENDPOINT_AGENDA,
         (d)=>{ lastGoodAgenda = d; },
@@ -761,35 +747,23 @@
       renderAgenda(agendaItems);
     }
 
-    /***********************
-     * OPTIONAL: MAIN SCREEN ROTATION (later)
-     ***********************/
-    function setActiveScreen(id){
-      screens.forEach(s => document.getElementById(s).classList.toggle("active", s === id));
-    }
-
     function initMainRotation(){
       if (!ENABLE_MAIN_ROTATION) return;
       let idx = 0;
       setInterval(() => {
         idx = (idx + 1) % screens.length;
-        setActiveScreen(screens[idx]);
+        screens.forEach(s => document.getElementById(s).classList.toggle("active", s === screens[idx]));
       }, 15000);
     }
 
-    /***********************
-     * NIGHTLY HARD REFRESH
-     ***********************/
     function scheduleNightReload() {
       const now = new Date();
       const reload = new Date();
       reload.setHours(4, 0, 0, 0);
       if (reload <= now) reload.setDate(reload.getDate() + 1);
-      const timeout = reload.getTime() - now.getTime();
-      setTimeout(() => location.reload(true), timeout);
+      setTimeout(() => location.reload(true), reload.getTime() - now.getTime());
     }
 
-    // init
     setScaleToFit();
     window.addEventListener("resize", setScaleToFit);
     scheduleNightReload();
