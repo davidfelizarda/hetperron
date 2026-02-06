@@ -121,9 +121,12 @@ function setActiveScreen(id){
     document.getElementById(s).classList.toggle("active", s === id)
   );
 
+  if(id==="screen-agenda") prefetchPromo();   // <-- voeg dit toe
+
   if(id==="screen-promo") startPromoSlideshow();
   else stopPromoSlideshow();
 }
+
 
 function startMainRotation(){
   setActiveScreen(screens[0]);
@@ -143,6 +146,38 @@ let promoSlides = [];
 let promoIndex = 0;
 let promoTimer = null;
 let promoRunning = false;
+let promoPreloaded = false;
+let promoPrefetchPromise = null;
+
+function preloadImages(slides){
+  if (promoPreloaded) return;
+  promoPreloaded = true;
+
+  for (const src of slides){
+    const im = new Image();
+    im.src = `${src}?ts=${Date.now()}`;
+  }
+}
+
+async function prefetchPromo(){
+  if (promoPrefetchPromise) return promoPrefetchPromise;
+
+  promoPrefetchPromise = (async () => {
+    promoSlides = await loadPromoSlides();
+    if (promoSlides.length){
+      preloadImages(promoSlides);
+
+      // Zet alvast de eerste klaar (nog vóór promo zichtbaar wordt)
+      const img = document.getElementById("promoImg");
+      if (img && !img.src){
+        img.src = `${promoSlides[0]}?ts=${Date.now()}`;
+      }
+    }
+    return promoSlides;
+  })();
+
+  return promoPrefetchPromise;
+}
 
 async function loadPromoSlides(){
   try{
@@ -168,7 +203,7 @@ async function startPromoSlideshow(){
   if(promoRunning) return;
   promoRunning=true;
 
-  promoSlides = await loadPromoSlides();
+promoSlides = await prefetchPromo();
   if(!promoSlides.length) return;
 
   const img=document.getElementById("promoImg");
@@ -188,7 +223,9 @@ async function startPromoSlideshow(){
 /***********************
  * INIT
  ***********************/
+prefetchPromo();
 startMainRotation();
+
 
 </script>
 </body>
