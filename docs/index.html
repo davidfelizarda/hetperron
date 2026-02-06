@@ -135,24 +135,16 @@
       letter-spacing:-0.01em;
     }
 
-    /* ✅ Compacter zodat 6 cards altijd passen */
     .slot{
       border:2px solid var(--border);
       border-radius: var(--r-md);
-      padding:16px 16px 18px 16px;
+      padding:16px 16px 24px 16px;
       margin-top:14px;
-      min-height: 180px;
-
+      min-height: 220px;
       display:flex;
       flex-direction:column;
       justify-content:flex-start;
       gap:10px;
-    }
-
-    /* ✅ Alleen bij lange titels: slot iets hoger + extra ademruimte */
-    .room-card.long .slot{
-      min-height: 210px;
-      padding-bottom:24px;
     }
 
     .pill{
@@ -176,7 +168,6 @@
       margin:0;
     }
 
-    /* Titel: max 3 regels + automatische verkleining */
     .name{
       font-size:34px;
       line-height:1.12;
@@ -202,7 +193,7 @@
       border:2px solid var(--border);
       border-radius: var(--r-xl);
       padding:28px;
-      height: 1460px;
+      height: 1460px; /* vaste hoogte voor nette signage */
       overflow:hidden;
       background:#fff;
     }
@@ -238,7 +229,7 @@
 
     .agenda-row{
       display:grid;
-      grid-template-columns: 240px 140px 1fr;
+      grid-template-columns: 240px 140px 1fr; /* Datum | Tijd | Naam+genre */
       gap:18px;
       padding:18px 18px;
       border:2px solid var(--border);
@@ -375,14 +366,13 @@
     /***********************
      * CONFIG
      ***********************/
-    const WORKER_BASE = "https://hetperron-yesplan-proxy.davidfelizarda.workers.dev/";
+    const WORKER_BASE = "https://hetperron-yesplan-proxy.davidfelizarda.workers.dev/"; // jouw worker
     const ENDPOINT_PLANNING = joinUrl(WORKER_BASE, "planning");
     const ENDPOINT_AGENDA   = joinUrl(WORKER_BASE, "agenda");
 
-    // ✅ Terug naar 6 per pagina
-    const ROOMS_PER_VIEW = 6;
+    const ROOMS_PER_VIEW = 4;
     const REFRESH_MS = 2 * 60 * 1000;
-    const ROOMPAGE_MS = 12 * 1000;
+    const ROOMPAGE_MS = 10 * 1000;
 
     const screens = ["screen-planning", "screen-agenda", "screen-promo"];
     const ENABLE_MAIN_ROTATION = false;
@@ -402,7 +392,7 @@
     // Agenda filters
     const AGENDA_PROFILES = new Set(["E_Podium", "E_educatief"]);
     const AGENDA_HIDE_LABEL = /schoolvoorstelling/i;
-    const GENRES = ["muziek","theater","klassiek","familie"];
+    const GENRES = ["muziek","theater","klassiek","familie"]; // uit labels
 
     let lastGoodPlanning = null;
     let lastGoodAgenda = null;
@@ -429,12 +419,12 @@
     }
 
     function todayISO() {
-      return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+      return new Date().toLocaleDateString("en-CA", { timeZone: TZ }); // YYYY-MM-DD
     }
 
     function addDaysISO(dateISO, days){
       const [y,m,d] = dateISO.split("-").map(Number);
-      const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0));
+      const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0)); // midday UTC to avoid DST edges
       dt.setUTCDate(dt.getUTCDate() + days);
       const yy = dt.getUTCFullYear();
       const mm = String(dt.getUTCMonth()+1).padStart(2,"0");
@@ -450,6 +440,7 @@
     }
 
     function formatDateShortNL(dateISO){
+      // "2026-02-06" -> "vr 6 feb"
       const [y,m,d] = dateISO.split("-").map(Number);
       const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0));
       const w = dt.toLocaleDateString("nl-BE", { weekday:"short" });
@@ -504,6 +495,15 @@
           <p class="name">${isEmpty ? " " : escapeHtml(activity.name)}</p>
         </div>
       `;
+    }
+
+    function applyNameSizing(container){
+      container.querySelectorAll(".name").forEach(el => {
+        const len = el.textContent.trim().length;
+        el.classList.remove("small","tiny");
+        if (len > 70) el.classList.add("small");
+        if (len > 95) { el.classList.remove("small"); el.classList.add("tiny"); }
+      });
     }
 
     function mapToCanonicalRoom(locName) {
@@ -561,7 +561,7 @@
     /***********************
      * Fetch helpers
      ***********************/
-    async function fetchArray(url, setLastGood, getLastGood){
+    async function fetchArray(url, lastGoodRefSetter, lastGoodValueGetter){
       try{
         const res = await fetch(url, { cache:"no-store" });
         if(!res.ok){
@@ -570,35 +570,13 @@
         }
         const data = await res.json();
         if(!Array.isArray(data)) throw new Error("Non-array JSON");
-        setLastGood(data);
+        lastGoodRefSetter(data);
         return data;
       }catch(e){
         console.error("fetch failed:", url, e);
-        const fallback = getLastGood();
+        const fallback = lastGoodValueGetter();
         return fallback ? fallback : [];
       }
-    }
-
-    /***********************
-     * ✅ Name sizing + long-card flag (voor extra hoogte)
-     ***********************/
-    function applyNameSizingAndLongCards(container){
-      // reset
-      container.querySelectorAll(".room-card").forEach(card => card.classList.remove("long"));
-
-      container.querySelectorAll(".name").forEach(el => {
-        const txt = el.textContent.trim();
-        const len = txt.length;
-        const card = el.closest(".room-card");
-
-        el.classList.remove("small","tiny");
-
-        if (len > 70) el.classList.add("small");
-        if (len > 95) { el.classList.remove("small"); el.classList.add("tiny"); }
-
-        // Als het echt lang is: card krijgt class "long" -> slots hoger
-        if (card && len > 85) card.classList.add("long");
-      });
     }
 
     /***********************
@@ -606,10 +584,12 @@
      ***********************/
     function pickStartTime(item){
       const ts = item?.["Voorstelling (Tijdschema’s)"];
-      if (ts && typeof ts === "string" && ts.includes("-")) return ts.split("-")[0].trim();
+      if (ts && typeof ts === "string" && ts.includes("-")) {
+        return ts.split("-")[0].trim(); // "10:00 - 11:30" -> "10:00"
+      }
       const t = item?.["Getoonde starttijd"];
       if (typeof t === "string") return t;
-      return t ? String(t).slice(0,5) : "";
+      return t ? String(t).slice(0,5) : ""; // fallback for weird formats
     }
 
     function extractGenre(labelsRaw){
@@ -636,9 +616,9 @@
           const labels = it?.Labels;
           if (labels && AGENDA_HIDE_LABEL.test(String(labels))) return false;
 
+          // safety: must have name + time
           const name = it?.Naam;
           if (!name) return false;
-
           const startT = pickStartTime(it);
           if (!startT) return false;
 
@@ -656,6 +636,7 @@
           };
         });
 
+      // sort chronologisch: datum + startTime
       filtered.sort((a,b) => {
         if (a.dateISO !== b.dateISO) return a.dateISO.localeCompare(b.dateISO);
         return a.startTime.localeCompare(b.startTime);
@@ -679,6 +660,7 @@
         return;
       }
 
+      // toon bv. max 14 items op één scherm (past netjes)
       const MAX = 14;
       const slice = filtered.slice(0, MAX);
 
@@ -698,7 +680,7 @@
     }
 
     /***********************
-     * Planning pagination
+     * Rendering planning pages
      ***********************/
     let roomsAll = [];
     let roomPageIndex = 0;
@@ -730,7 +712,7 @@
         `;
       }).join("");
 
-      applyNameSizingAndLongCards(grid);
+      applyNameSizing(grid);
 
       pageLabel.textContent = (totalPages > 1)
         ? `Pagina ${roomPageIndex + 1}/${totalPages}`
