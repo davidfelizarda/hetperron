@@ -644,3 +644,176 @@
 
           return true;
         })
+        .map(it => {
+          const dateISO = it.Datum;
+          const startT = pickStartTime(it);
+          return {
+            dateISO,
+            dateLabel: formatDateShortNL(dateISO),
+            startTime: startT,
+            name: String(it.Naam || ""),
+            genre: extractGenre(it.Labels)
+          };
+        });
+
+      filtered.sort((a,b) => {
+        if (a.dateISO !== b.dateISO) return a.dateISO.localeCompare(b.dateISO);
+        return a.startTime.localeCompare(b.startTime);
+      });
+
+      return { filtered, startISO, endISO };
+    }
+
+    function renderAgenda(items){
+      const list = document.getElementById("agendaList");
+      const meta = document.getElementById("agendaMeta");
+      const range = document.getElementById("agendaRange");
+
+      const { filtered, startISO, endISO } = agendaFilterAndSort(items);
+
+      range.textContent = `${formatDateShortNL(startISO)} → ${formatDateShortNL(endISO)}`;
+      meta.textContent = filtered.length ? `${filtered.length} items` : `Geen items`;
+
+      if (!filtered.length){
+        list.innerHTML = `<div class="agenda-empty">Geen voorstellingen in de komende 4 weken.</div>`;
+        return;
+      }
+
+      const MAX = 14;
+      const slice = filtered.slice(0, MAX);
+
+      list.innerHTML = slice.map(row => {
+        const genre = row.genre ? `<div class="agenda-genre">${escapeHtml(row.genre)}</div>` : "";
+        return `
+          <div class="agenda-row">
+            <p class="agenda-date">${escapeHtml(row.dateLabel)}</p>
+            <p class="agenda-time">${escapeHtml(row.startTime)}</p>
+            <div>
+              <p class="agenda-title">${escapeHtml(row.name)}</p>
+              ${genre}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    /***********************
+     * Planning pagination
+     ***********************/
+    let roomsAll = [];
+    let roomPageIndex = 0;
+    let roomPageTimer = null;
+
+    function renderRoomPage() {
+      const grid = document.getElementById("roomsGrid");
+      const pageLabel = document.getElementById("pageLabel");
+
+      const totalRooms = roomsAll.length;
+      const totalPages = Math.max(1, Math.ceil(totalRooms / ROOMS_PER_VIEW));
+      if (roomPageIndex >= totalPages) roomPageIndex = 0;
+
+      const start = roomPageIndex * ROOMS_PER_VIEW;
+      const slice = roomsAll.slice(start, start + ROOMS_PER_VIEW);
+
+      grid.innerHTML = slice.map(r => {
+        const nowAct = r.current ? { startLabel:r.current.startLabel, endLabel:r.current.endLabel, name:r.current.name } : null;
+        const nextAct = r.next ? { startLabel:r.next.startLabel, endLabel:r.next.endLabel, name:r.next.name } : null;
+
+        return `
+          <article class="room-card">
+            <div class="room-head">
+              <h2 class="room-name">${escapeHtml(r.roomName)}</h2>
+            </div>
+            ${buildSlotHTML("now", nowAct)}
+            ${buildSlotHTML("next", nextAct)}
+          </article>
+        `;
+      }).join("");
+
+      applyNameSizingAndLongCards(grid);
+
+      pageLabel.textContent = (totalPages > 1)
+        ? `Pagina ${roomPageIndex + 1}/${totalPages}`
+        : `Pagina`;
+    }
+
+    function startRoomPagination() {
+      if (roomPageTimer) clearInterval(roomPageTimer);
+      const totalPages = Math.ceil(roomsAll.length / ROOMS_PER_VIEW);
+      if (totalPages <= 1) return;
+
+      roomPageTimer = setInterval(() => {
+        roomPageIndex = (roomPageIndex + 1) % totalPages;
+        renderRoomPage();
+      }, ROOMPAGE_MS);
+    }
+
+    /***********************
+     * MAIN REFRESH LOOP
+     ***********************/
+    async function refreshAll() {
+      const today = nowInBrussels();
+      document.getElementById("todayLabel").textContent = formatTodayLabel(today);
+      document.getElementById("todayLabelAgenda").textContent = formatTodayLabel(today);
+      document.getElementById("todayLabelPromo").textContent = formatTodayLabel(today);
+
+      const dateISO = todayISO();
+
+      // planning
+      const planningItems = await fetchArray(
+        ENDPOINT_PLANNING,
+        (d)=>{ lastGoodPlanning = d; },
+        ()=>lastGoodPlanning
+      );
+      roomsAll = computeRoomPlan(planningItems, dateISO);
+      roomPageIndex = 0;
+      renderRoomPage();
+      startRoomPagination();
+
+      // agenda
+      const agendaItems = await fetchArray(
+        ENDPOINT_AGENDA,
+        (d)=>{ lastGoodAgenda = d; },
+        ()=>lastGoodAgenda
+      );
+      renderAgenda(agendaItems);
+    }
+
+    /***********************
+     * OPTIONAL: MAIN SCREEN ROTATION (later)
+     ***********************/
+    function setActiveScreen(id){
+      screens.forEach(s => document.getElementById(s).classList.toggle("active", s === id));
+    }
+
+    function initMainRotation(){
+      if (!ENABLE_MAIN_ROTATION) return;
+      let idx = 0;
+      setInterval(() => {
+        idx = (idx + 1) % screens.length;
+        setActiveScreen(screens[idx]);
+      }, 15000);
+    }
+
+    /***********************
+     * NIGHTLY HARD REFRESH
+     ***********************/
+    function scheduleNightReload() {
+      const now = new Date();
+      const reload = new Date();
+      reload.setHours(4, 0, 0, 0);
+      if (reload <= now) reload.setDate(reload.getDate() + 1);
+      const timeout = reload.getTime() - now.getTime();
+      setTimeout(() => location.reload(true), timeout);
+    }
+
+    // init
+    setScaleToFit();
+    window.addEventListener("resize", setScaleToFit);
+    scheduleNightReload();
+    refreshAll();
+    setInterval(refreshAll, REFRESH_MS);
+    initMainRotation();
+  </script>
+</body>
+</html>
