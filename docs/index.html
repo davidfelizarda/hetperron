@@ -286,47 +286,18 @@
       text-align:center;
     }
 
-    .placeholder{
-      margin-top:42px;
-      border:2px dashed #D0D0D0;
-      border-radius:26px;
-      height: 1460px;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      color:#8a8a8a;
-      font-size:34px;
-      text-align:center;
-      padding:30px;
-    }
-
-
+    /* ===== PROMO FULLSCREEN ===== */
     #screen-promo{
-  padding:0 !important;
-  background:#000;
-  position:relative;
-}
-
-#promoImg{
-  position:absolute;
-  inset:0;
-  width:100%;
-  height:100%;
-  object-fit:cover;
-  display:block;
-}
-
-    /* ===== PROMO FULLSCREEN (NIEUW) ===== */
-         #screen-promo{
-  padding:0 !important;
-  background: var(--bg); /* wit, zoals je stage */
-}
-
+      padding:0 !important;
+      background:#000;
+      position:relative;
     }
     #promoImg{
+      position:absolute;
+      inset:0;
       width:100%;
       height:100%;
-      object-fit:cover; /* geen balken */
+      object-fit:cover;
       display:block;
     }
   </style>
@@ -368,7 +339,7 @@
       </div>
     </section>
 
-    <!-- SCREEN 3: PROMO (FULLSCREEN, geen header) -->
+    <!-- SCREEN 3: PROMO -->
     <section class="screen" id="screen-promo">
       <img id="promoImg" alt="" />
     </section>
@@ -419,6 +390,14 @@
     function setScaleToFit() {
       const stage = document.getElementById("stage");
       const w = 1080, h = 1920;
+
+      // TV/fullscreen: geen scaling -> pixel perfect
+      if (window.innerWidth >= w && window.innerHeight >= h) {
+        stage.style.setProperty("--scale", "1");
+        return;
+      }
+
+      // laptop preview
       const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
       stage.style.setProperty("--scale", String(scale));
     }
@@ -775,79 +754,91 @@
     }
 
     /***********************
-     * PROMO (eerste slide laden)  
+     * PROMO SLIDESHOW + PRELOAD (harde cut)
      ***********************/
-let promoPreloaded = false;
+    const PROMO_SLIDE_MS = 10000; // 10s per afbeelding
 
-async function preloadPromoSlides(slides){
-  if (promoPreloaded) return;
-  promoPreloaded = true;
+    let promoSlides = [];
+    let promoIndex = 0;
+    let promoTimer = null;
+    let promoRunning = false;
 
-  for (const src of slides){
-    const im = new Image();
-    im.src = `${src}?ts=${Date.now()}`;
-  }
-}
-    
-   /***********************
- * PROMO SLIDESHOW
- ***********************/
-const PROMO_SLIDE_MS = 10000; // 10s per afbeelding
-const PROMO_FADE_MS  = 500;
+    // preload state
+    let promoPreloaded = false;
+    let promoPrefetchPromise = null;
 
-let promoSlides = [];
-let promoIndex = 0;
-let promoTimer = null;
-let promoRunning = false;
+    async function loadPromoSlides(){
+      try{
+        const res = await fetch(`promo/promo.json?ts=${Date.now()}`, { cache:"no-store" });
+        if(!res.ok) return [];
+        const list = await res.json();
+        return Array.isArray(list) ? list : [];
+      }catch(e){
+        console.error("promo load failed", e);
+        return [];
+      }
+    }
 
-function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+    function preloadImages(slides){
+      if (promoPreloaded) return;
+      promoPreloaded = true;
 
-async function loadPromoSlides(){
-  try{
-    const res = await fetch(`promo/promo.json?ts=${Date.now()}`, { cache:"no-store" });
-    if(!res.ok) return [];
-    const list = await res.json();
-    return Array.isArray(list) ? list : [];
-  }catch(e){
-    console.error("promo load failed", e);
-    return [];
-  }
-}
+      for (const src of slides){
+        const im = new Image();
+        im.src = `${src}?ts=${Date.now()}`;
+      }
+    }
 
-function stopPromoSlideshow(){
-  promoRunning = false;
-  if (promoTimer) { clearTimeout(promoTimer); promoTimer = null; }
-}
+    async function prefetchPromo(){
+      if (promoPrefetchPromise) return promoPrefetchPromise;
 
-async function startPromoSlideshow(){
-  if (promoRunning) return;
-  promoRunning = true;
+      promoPrefetchPromise = (async () => {
+        promoSlides = await loadPromoSlides();
+        if (promoSlides.length){
+          preloadImages(promoSlides);
 
-  promoSlides = await loadPromoSlides();
-  promoIndex = 0;
+          // Zet de eerste alvast klaar (vermijdt zwart flitsje bij switch)
+          const img = document.getElementById("promoImg");
+          if (img && !img.src){
+            img.src = `${promoSlides[0]}?ts=${Date.now()}`;
+          }
+        }
+        return promoSlides;
+      })();
 
-  const img = document.getElementById("promoImg");
-  if (!img || !promoSlides.length) return;
+      return promoPrefetchPromise;
+    }
 
- 
+    function stopPromoSlideshow(){
+      promoRunning = false;
+      if (promoTimer) {
+        clearTimeout(promoTimer);
+        promoTimer = null;
+      }
+    }
 
- 
-    function step(){
-  if (!promoRunning) return;
+    async function startPromoSlideshow(){
+      if (promoRunning) return;
+      promoRunning = true;
 
-  const src = promoSlides[promoIndex];
-  img.src = `${src}?ts=${Date.now()}`;
+      promoSlides = await prefetchPromo();
+      if (!promoSlides.length) return;
 
-  promoIndex = (promoIndex + 1) % promoSlides.length;
-  promoTimer = setTimeout(step, PROMO_SLIDE_MS);
-}
+      const img = document.getElementById("promoImg");
+      if (!img) return;
 
+      function step(){
+        if (!promoRunning) return;
 
-  // start meteen met zichtbaar
- 
-  step();
-}
+        const src = promoSlides[promoIndex];
+        img.src = `${src}?ts=${Date.now()}`;
 
+        promoIndex = (promoIndex + 1) % promoSlides.length;
+        promoTimer = setTimeout(step, PROMO_SLIDE_MS);
+      }
+
+      step();
+    }
 
     /***********************
      * MAIN REFRESH LOOP
@@ -877,20 +868,22 @@ async function startPromoSlideshow(){
       );
       renderAgenda(agendaItems);
 
-      // Promo: enkel initialiseren (1x) als nodig
-      loadFirstPromoImage();
+      // Promo alvast klaarzetten / pre-loaden
+      prefetchPromo();
     }
 
     /***********************
      * MAIN SCREEN ROTATION
      ***********************/
     function setActiveScreen(id){
-  screens.forEach(s => document.getElementById(s).classList.toggle("active", s === id));
+      screens.forEach(s => document.getElementById(s).classList.toggle("active", s === id));
 
-  if (id === "screen-promo") startPromoSlideshow();
-  else stopPromoSlideshow();
-}
+      // op agenda al zeker preload doen (extra veilig)
+      if (id === "screen-agenda") prefetchPromo();
 
+      if (id === "screen-promo") startPromoSlideshow();
+      else stopPromoSlideshow();
+    }
 
     function initMainRotation(){
       if (!ENABLE_MAIN_ROTATION) return;
@@ -925,6 +918,10 @@ async function startPromoSlideshow(){
 
     refreshAll();
     setInterval(refreshAll, REFRESH_MS);
+
+    // start preload meteen bij opstart
+    prefetchPromo();
+
     initMainRotation();
   </script>
 </body>
