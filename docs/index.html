@@ -301,6 +301,25 @@
       text-align:center;
       padding:30px;
     }
+
+    /* ===== PROMO TEST ===== */
+.promo-wrap{
+  margin-top:26px;
+  height:1500px;
+  border-radius: var(--r-xl);
+  overflow:hidden;
+  background:#000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#promoImg{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
   </style>
 </head>
 
@@ -354,10 +373,11 @@
         </div>
       </div>
 
-      <div class="placeholder">
-        Promo blijft voorlopig placeholder.<br/>
-        (Later meerdere full-page ads)
-      </div>
+      <div class="promo-wrap">
+  <img id="promoImg" alt="" />
+</div>
+
+      
     </section>
 
   </div>
@@ -824,6 +844,18 @@
 
       setTimeout(() => location.reload(true), reload.getTime() - now.getTime());
     }
+  async function loadFirstPromoImage(){
+  try{
+    const res = await fetch("promo/promo.json?ts=" + Date.now());
+    const list = await res.json();
+    if (!list.length) return;
+
+    const img = document.getElementById("promoImg");
+    if (img) img.src = list[0];
+  }catch(e){
+    console.error("promo load failed", e);
+  }
+}
 
     // init
     setScaleToFit();
@@ -831,8 +863,10 @@
     scheduleNightReload();
 
     refreshAll();
+    loadFirstPromoImage();
     setInterval(refreshAll, REFRESH_MS);
     initMainRotation();
+   
   </script>
 </body>
 </html>
