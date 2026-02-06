@@ -799,31 +799,22 @@ async function startPromoSlideshow(){
   const img = document.getElementById("promoImg");
   if (!img || !promoSlides.length) return;
 
-  img.style.transition = `opacity ${PROMO_FADE_MS}ms linear`;
+ 
 
-  async function step(){
-    if (!promoRunning) return;
+ 
+    function step(){
+  if (!promoRunning) return;
 
-    // fade out
-    img.style.opacity = "0";
-    await sleep(PROMO_FADE_MS);
+  const src = promoSlides[promoIndex];
+  img.src = `${src}?ts=${Date.now()}`;
 
-    // set new src
-    const src = promoSlides[promoIndex];
-    img.src = `${src}?ts=${Date.now()}`;
-    await sleep(50);
+  promoIndex = (promoIndex + 1) % promoSlides.length;
+  promoTimer = setTimeout(step, PROMO_SLIDE_MS);
+}
 
-    // fade in
-    img.style.opacity = "1";
-
-    // next
-    promoIndex = (promoIndex + 1) % promoSlides.length;
-
-    promoTimer = setTimeout(step, PROMO_SLIDE_MS);
-  }
 
   // start meteen met zichtbaar
-  img.style.opacity = "0";
+ 
   step();
 }
 
