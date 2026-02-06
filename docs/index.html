@@ -319,3 +319,328 @@
           <img class="logo" src="assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
           <h1 class="title">Zaalplanning</h1>
         </div>
+        <div class="header-right">
+          <div class="date" id="todayLabel">—</div>
+          <div class="meta" id="pageLabel">—</div>
+        </div>
+      </div>
+
+      <div class="grid" id="roomsGrid"></div>
+    </section>
+
+    <!-- SCREEN 2: AGENDA -->
+    <section class="screen" id="screen-agenda">
+      <div class="header">
+        <div class="header-left">
+          <img class="logo" src="assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
+          <h1 class="title">Agenda</h1>
+        </div>
+        <div class="header-right">
+          <div class="date" id="todayLabelAgenda">—</div>
+          <div class="meta" id="agendaMeta">—</div>
+        </div>
+      </div>
+
+      <div class="agenda-wrap">
+        <div class="agenda-header">
+          <p class="agenda-subtitle">Voorstellingen (vandaag → 4 weken)</p>
+          <p class="agenda-range" id="agendaRange">—</p>
+        </div>
+        <div class="agenda-list" id="agendaList"></div>
+      </div>
+    </section>
+
+    <!-- SCREEN 3: PROMO (placeholder) -->
+    <section class="screen" id="screen-promo">
+      <div class="header">
+        <div class="header-left">
+          <img class="logo" src="assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
+          <h1 class="title">Promo</h1>
+        </div>
+        <div class="header-right">
+          <div class="date" id="todayLabelPromo">—</div>
+          <div class="meta">Placeholder</div>
+        </div>
+      </div>
+
+      <div class="placeholder">
+        Promo blijft voorlopig placeholder.<br/>
+        (Later meerdere full-page ads)
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    /***********************
+     * CONFIG
+     ***********************/
+    const WORKER_BASE = "https://hetperron-yesplan-proxy.davidfelizarda.workers.dev/";
+    const ENDPOINT_PLANNING = joinUrl(WORKER_BASE, "planning");
+    const ENDPOINT_AGENDA   = joinUrl(WORKER_BASE, "agenda");
+
+    // ✅ Terug naar 6 per pagina
+    const ROOMS_PER_VIEW = 6;
+    const REFRESH_MS = 2 * 60 * 1000;
+    const ROOMPAGE_MS = 12 * 1000;
+
+    const screens = ["screen-planning", "screen-agenda", "screen-promo"];
+    const ENABLE_MAIN_ROTATION = false;
+
+    const ROOM_ORDER = [
+      "Stadsschouwburg",
+      "Theaterzaal",
+      "Polyvalente zaal",
+      "Vergaderlokaal 1",
+      "Vergaderlokaal 2",
+      "Vergaderlokaal 3",
+      "Vergaderlokaal 4",
+      "Vergaderlokaal A",
+      "Repetitieruimte"
+    ];
+
+    // Agenda filters
+    const AGENDA_PROFILES = new Set(["E_Podium", "E_educatief"]);
+    const AGENDA_HIDE_LABEL = /schoolvoorstelling/i;
+    const GENRES = ["muziek","theater","klassiek","familie"];
+
+    let lastGoodPlanning = null;
+    let lastGoodAgenda = null;
+
+    /***********************
+     * helpers
+     ***********************/
+    const TZ = "Europe/Brussels";
+    function joinUrl(base, path){
+      if (!base.endsWith("/")) base += "/";
+      return base + path.replace(/^\/+/, "");
+    }
+    function setScaleToFit() {
+      const stage = document.getElementById("stage");
+      const w = 1080, h = 1920;
+      const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
+      stage.style.setProperty("--scale", String(scale));
+    }
+    function capitalize(s){ return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+    function nowInBrussels() {
+      const s = new Date().toLocaleString("en-US", { timeZone: TZ });
+      return new Date(s);
+    }
+
+    function todayISO() {
+      return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+    }
+
+    function addDaysISO(dateISO, days){
+      const [y,m,d] = dateISO.split("-").map(Number);
+      const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0));
+      dt.setUTCDate(dt.getUTCDate() + days);
+      const yy = dt.getUTCFullYear();
+      const mm = String(dt.getUTCMonth()+1).padStart(2,"0");
+      const dd = String(dt.getUTCDate()).padStart(2,"0");
+      return `${yy}-${mm}-${dd}`;
+    }
+
+    function formatTodayLabel(dateObj) {
+      const weekday = dateObj.toLocaleDateString("nl-BE", { weekday: "long", timeZone: TZ });
+      const day = dateObj.toLocaleDateString("nl-BE", { day: "numeric", timeZone: TZ });
+      const month = dateObj.toLocaleDateString("nl-BE", { month: "short", timeZone: TZ });
+      return `${capitalize(weekday)} ${day} ${month}`;
+    }
+
+    function formatDateShortNL(dateISO){
+      const [y,m,d] = dateISO.split("-").map(Number);
+      const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0));
+      const w = dt.toLocaleDateString("nl-BE", { weekday:"short" });
+      const day = dt.toLocaleDateString("nl-BE", { day:"numeric" });
+      const mon = dt.toLocaleDateString("nl-BE", { month:"short" });
+      return `${w} ${day} ${mon}`;
+    }
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    /***********************
+     * planning time parsing
+     ***********************/
+    function parseTimeToDate(dateISO, hhmm) {
+      const [y,m,d] = dateISO.split("-").map(Number);
+      const [hh,mm] = String(hhmm).split(":").map(Number);
+      const s = `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")} ${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00`;
+      const brusselsStr = new Date(s).toLocaleString("en-US", { timeZone: TZ });
+      return new Date(brusselsStr);
+    }
+
+    function normalizeEnd(startDate, endDate) {
+      if (endDate.getTime() < startDate.getTime()) {
+        const plus = new Date(endDate);
+        plus.setDate(plus.getDate() + 1);
+        return plus;
+      }
+      return endDate;
+    }
+
+    function isNowWithin(start, end, now) {
+      return now >= start && now < end;
+    }
+
+    /***********************
+     * planning slots
+     ***********************/
+    function buildSlotHTML(type, activity) {
+      const isEmpty = !activity;
+      const pillLabel = (type === "now") ? "Nu" : "Straks";
+      return `
+        <div class="slot ${isEmpty ? "empty" : ""}">
+          <div class="pill ${type}">${pillLabel}</div>
+          <p class="time">${isEmpty ? "—" : `${escapeHtml(activity.startLabel)}–${escapeHtml(activity.endLabel)}`}</p>
+          <p class="name">${isEmpty ? " " : escapeHtml(activity.name)}</p>
+        </div>
+      `;
+    }
+
+    function mapToCanonicalRoom(locName) {
+      const n = String(locName || "").toLowerCase();
+      if (n === "stadsschouwburg") return "Stadsschouwburg";
+      if (n === "theaterzaal") return "Theaterzaal";
+      if (n === "polyvalente zaal") return "Polyvalente zaal";
+      if (n === "vergaderlokaal 1") return "Vergaderlokaal 1";
+      if (n === "vergaderlokaal 2") return "Vergaderlokaal 2";
+      if (n === "vergaderlokaal 3") return "Vergaderlokaal 3";
+      if (n === "vergaderlokaal 4") return "Vergaderlokaal 4";
+      if (n === "vergaderlokaal a") return "Vergaderlokaal A";
+      if (n.startsWith("repetitieruimte")) return "Repetitieruimte";
+      return null;
+    }
+
+    function computeRoomPlan(items, dateISO) {
+      const now = nowInBrussels();
+      const byRoom = new Map();
+
+      for (const item of items) {
+        const loc = item?.Locatie?.name;
+        const room = mapToCanonicalRoom(loc);
+        if (!room) continue;
+
+        const itemDate = item?.Datum || dateISO;
+        if (itemDate !== dateISO) continue;
+
+        const name = item?.Naam || "";
+        const startLabel = item?.["Getoonde starttijd"];
+        const endLabel = item?.["Getoonde eindtijd"];
+        if (!startLabel || !endLabel) continue;
+
+        const start = parseTimeToDate(itemDate, startLabel);
+        let end = parseTimeToDate(itemDate, endLabel);
+        end = normalizeEnd(start, end);
+
+        if (!byRoom.has(room)) byRoom.set(room, []);
+        byRoom.get(room).push({ name, start, end, startLabel, endLabel });
+      }
+
+      for (const [room, arr] of byRoom.entries()) {
+        arr.sort((a,b)=> a.start - b.start);
+        byRoom.set(room, arr);
+      }
+
+      return ROOM_ORDER.map(roomName => {
+        const arr = byRoom.get(roomName) || [];
+        const current = arr.find(a => isNowWithin(a.start, a.end, now)) || null;
+        const next = arr.find(a => a.start > now) || null;
+        return { roomName, current, next };
+      });
+    }
+
+    /***********************
+     * Fetch helpers
+     ***********************/
+    async function fetchArray(url, setLastGood, getLastGood){
+      try{
+        const res = await fetch(url, { cache:"no-store" });
+        if(!res.ok){
+          const txt = await res.text().catch(()=> "");
+          throw new Error(`HTTP ${res.status}: ${txt}`);
+        }
+        const data = await res.json();
+        if(!Array.isArray(data)) throw new Error("Non-array JSON");
+        setLastGood(data);
+        return data;
+      }catch(e){
+        console.error("fetch failed:", url, e);
+        const fallback = getLastGood();
+        return fallback ? fallback : [];
+      }
+    }
+
+    /***********************
+     * ✅ Name sizing + long-card flag (voor extra hoogte)
+     ***********************/
+    function applyNameSizingAndLongCards(container){
+      // reset
+      container.querySelectorAll(".room-card").forEach(card => card.classList.remove("long"));
+
+      container.querySelectorAll(".name").forEach(el => {
+        const txt = el.textContent.trim();
+        const len = txt.length;
+        const card = el.closest(".room-card");
+
+        el.classList.remove("small","tiny");
+
+        if (len > 70) el.classList.add("small");
+        if (len > 95) { el.classList.remove("small"); el.classList.add("tiny"); }
+
+        // Als het echt lang is: card krijgt class "long" -> slots hoger
+        if (card && len > 85) card.classList.add("long");
+      });
+    }
+
+    /***********************
+     * Agenda mapping
+     ***********************/
+    function pickStartTime(item){
+      const ts = item?.["Voorstelling (Tijdschema’s)"];
+      if (ts && typeof ts === "string" && ts.includes("-")) return ts.split("-")[0].trim();
+      const t = item?.["Getoonde starttijd"];
+      if (typeof t === "string") return t;
+      return t ? String(t).slice(0,5) : "";
+    }
+
+    function extractGenre(labelsRaw){
+      const s = String(labelsRaw || "").toLowerCase();
+      for (const g of GENRES){
+        if (s.includes(g)) return g;
+      }
+      return "";
+    }
+
+    function agendaFilterAndSort(items){
+      const startISO = todayISO();
+      const endISO = addDaysISO(startISO, 28);
+
+      const filtered = items
+        .filter(it => {
+          const prof = it?.Profiel?.name || it?.Profiel || "";
+          if (!AGENDA_PROFILES.has(String(prof))) return false;
+
+          const dateISO = it?.Datum;
+          if (!dateISO || typeof dateISO !== "string") return false;
+          if (dateISO < startISO || dateISO > endISO) return false;
+
+          const labels = it?.Labels;
+          if (labels && AGENDA_HIDE_LABEL.test(String(labels))) return false;
+
+          const name = it?.Naam;
+          if (!name) return false;
+
+          const startT = pickStartTime(it);
+          if (!startT) return false;
+
+          return true;
+        })
