@@ -177,12 +177,28 @@
       margin:0;
     }
     .name{
-      font-size:34px;
-      line-height:1.12;
-      color:#2B2B2B;
-      margin:0;
-      word-break:break-word;
-    }
+  font-size:34px;
+  line-height:1.12;
+  color:#2B2B2B;
+  margin:0;
+  word-break:break-word;
+
+  /* --- line clamp --- */
+  display:-webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;   /* max 3 regels zichtbaar */
+  overflow:hidden;
+}
+
+/* automatisch kleiner bij lange titels */
+.name.small{
+  font-size:28px;
+}
+
+.name.tiny{
+  font-size:24px;
+}
+
 
     .slot.empty .pill{ opacity:.28; }
     .slot.empty .time,
@@ -506,6 +522,17 @@
       const slice = roomsAll.slice(start, start + ROOMS_PER_VIEW);
 
       grid.innerHTML = slice.map(r => {
+        // automatische font scaling voor lange titels
+grid.querySelectorAll(".name").forEach(el => {
+  const len = el.textContent.trim().length;
+
+  if (len > 70) el.classList.add("small");
+  if (len > 95) {
+    el.classList.remove("small");
+    el.classList.add("tiny");
+  }
+});
+
         const nowAct = r.current ? { startLabel: r.current.startLabel, endLabel: r.current.endLabel, name: r.current.name } : null;
         const nextAct = r.next ? { startLabel: r.next.startLabel, endLabel: r.next.endLabel, name: r.next.name } : null;
 
