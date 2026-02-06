@@ -4,9 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Het Perron — Narrowcasting</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
 
   <style>
     :root{
@@ -89,16 +90,15 @@
       font-size:84px;
       line-height:0.95;
       font-weight:800;
-      letter-spacing:-1px;
       margin:0;
       white-space:nowrap;
+      letter-spacing:-0.02em;
     }
-.title{
-  letter-spacing:-0.02em;
-}
-.room-name{
-  letter-spacing:-0.01em;
-}
+
+    .room-name{
+      letter-spacing:-0.01em;
+    }
+
     .header-right{
       text-align:right;
       font-size:30px;
@@ -136,6 +136,7 @@
       gap:10px;
       margin-bottom:18px;
     }
+
     .room-name{
       font-size:44px;
       line-height:1.05;
@@ -147,9 +148,12 @@
     .slot{
       border:2px solid var(--border);
       border-radius: var(--r-md);
-      padding:16px 16px 18px 16px;
+      padding:16px 16px 24px 16px; /* extra ademruimte onderaan */
       margin-top:14px;
-      min-height: 168px;
+
+      /* was 168px — te klein voor 3 regels; dit voorkomt afsnijden */
+      min-height: 220px;
+
       display:flex;
       flex-direction:column;
       justify-content:flex-start;
@@ -176,29 +180,22 @@
       letter-spacing:-0.5px;
       margin:0;
     }
+
+    /* Titel: max 3 regels + automatische verkleining */
     .name{
-  font-size:34px;
-  line-height:1.12;
-  color:#2B2B2B;
-  margin:0;
-  word-break:break-word;
+      font-size:34px;
+      line-height:1.12;
+      color:#2B2B2B;
+      margin:0;
+      word-break:break-word;
 
-  /* --- line clamp --- */
-  display:-webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 3;   /* max 3 regels zichtbaar */
-  overflow:hidden;
-}
-
-/* automatisch kleiner bij lange titels */
-.name.small{
-  font-size:28px;
-}
-
-.name.tiny{
-  font-size:24px;
-}
-
+      display:-webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;   /* max 3 regels zichtbaar */
+      overflow:hidden;
+    }
+    .name.small{ font-size:28px; }
+    .name.tiny{ font-size:24px; }
 
     .slot.empty .pill{ opacity:.28; }
     .slot.empty .time,
@@ -334,17 +331,13 @@
     }
 
     function todayISO() {
-      // YYYY-MM-DD in Europe/Brussels (belangrijk rond middernacht)
       return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
     }
 
     /***********************
      * TIME (Brussels-safe)
-     * Zorgt dat "nu" klopt, ook als signage device in UTC staat.
      ***********************/
     function nowInBrussels() {
-      // We nemen de Brusselse local-time string en bouwen daar een Date object van.
-      // Dit voorkomt afwijkingen als het toestel in een andere timezone staat.
       const s = new Date().toLocaleString("en-US", { timeZone: TZ });
       return new Date(s);
     }
@@ -356,7 +349,6 @@
       const [y,m,d] = dateISO.split("-").map(Number);
       const [hh,mm] = String(hhmm).split(":").map(Number);
 
-      // Bouw een "YYYY-MM-DD HH:MM:SS" string en interpreteer die in Brussels
       const s = `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")} ${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00`;
       const brusselsStr = new Date(s).toLocaleString("en-US", { timeZone: TZ });
       return new Date(brusselsStr);
@@ -448,22 +440,16 @@
 
     /***********************
      * COMPUTE NU / STRAKS PER ZAAL
-     * - "NU" = lopende activiteit (als die er is)
-     * - "STRAX" = eerstvolgende activiteit van vandaag (ook als het ochtend is)
-     *   en onafhankelijk van of er nu iets bezig is.
      ***********************/
     function computeRoomPlan(items, dateISO) {
-      // IMPORTANT: "nu" in Europe/Brussels, onafhankelijk van device timezone
       const now = nowInBrussels();
 
-      // group by canonical room
       const byRoom = new Map();
       for (const item of items) {
         const loc = item?.Locatie?.name;
         const room = mapToCanonicalRoom(loc);
         if (!room) continue;
 
-        // (optioneel maar veiliger) enkel items voor de gevraagde dag
         const itemDate = item?.Datum || dateISO;
         if (itemDate !== dateISO) continue;
 
@@ -480,20 +466,15 @@
         byRoom.get(room).push({ name, start, end, startLabel, endLabel });
       }
 
-      // sort per room
       for (const [room, arr] of byRoom.entries()) {
         arr.sort((a,b)=> a.start - b.start);
         byRoom.set(room, arr);
       }
 
-      // build ordered list
       const rooms = ROOM_ORDER.map(roomName => {
         const arr = byRoom.get(roomName) || [];
 
-        // NU: lopende activiteit (kan null zijn)
         const current = arr.find(a => isNowWithin(a.start, a.end, now)) || null;
-
-        // STRAX: eerstvolgende activiteit van vandaag (ook als het nog ochtend is)
         const next = arr.find(a => a.start > now) || null;
 
         return { roomName, current, next };
@@ -509,6 +490,19 @@
     let roomPageIndex = 0;
     let roomPageTimer = null;
 
+    function applyNameSizing(container){
+      container.querySelectorAll(".name").forEach(el => {
+        const len = el.textContent.trim().length;
+
+        el.classList.remove("small","tiny");
+        if (len > 70) el.classList.add("small");
+        if (len > 95) {
+          el.classList.remove("small");
+          el.classList.add("tiny");
+        }
+      });
+    }
+
     function renderRoomPage() {
       const grid = document.getElementById("roomsGrid");
       const pageLabel = document.getElementById("pageLabel");
@@ -522,17 +516,6 @@
       const slice = roomsAll.slice(start, start + ROOMS_PER_VIEW);
 
       grid.innerHTML = slice.map(r => {
-        // automatische font scaling voor lange titels
-grid.querySelectorAll(".name").forEach(el => {
-  const len = el.textContent.trim().length;
-
-  if (len > 70) el.classList.add("small");
-  if (len > 95) {
-    el.classList.remove("small");
-    el.classList.add("tiny");
-  }
-});
-
         const nowAct = r.current ? { startLabel: r.current.startLabel, endLabel: r.current.endLabel, name: r.current.name } : null;
         const nextAct = r.next ? { startLabel: r.next.startLabel, endLabel: r.next.endLabel, name: r.next.name } : null;
 
@@ -546,6 +529,8 @@ grid.querySelectorAll(".name").forEach(el => {
           </article>
         `;
       }).join("");
+
+      applyNameSizing(grid);
 
       pageLabel.textContent = (totalPages > 1)
         ? `Pagina ${roomPageIndex + 1}/${totalPages}`
@@ -568,7 +553,6 @@ grid.querySelectorAll(".name").forEach(el => {
      * MAIN REFRESH LOOP
      ***********************/
     async function refreshPlanning() {
-      // header date labels (toon altijd Brussels-datum)
       const today = nowInBrussels();
       document.getElementById("todayLabel").textContent = formatTodayLabel(today);
       document.getElementById("todayLabelAgenda").textContent = formatTodayLabel(today);
@@ -583,7 +567,6 @@ grid.querySelectorAll(".name").forEach(el => {
       renderRoomPage();
       startRoomPagination();
 
-      // Als er nog nooit data was en worker faalt: toon lege cards + label
       if ((!items || items.length === 0) && !lastGoodData) {
         roomsAll = ROOM_ORDER.map(roomName => ({ roomName, current:null, next:null }));
         roomPageIndex = 0;
@@ -615,23 +598,16 @@ grid.querySelectorAll(".name").forEach(el => {
 
     /***********************
      * NIGHTLY HARD REFRESH
-     * (voorkomt TV browser issues)
      ***********************/
     function scheduleNightReload() {
       const now = new Date();
       const reload = new Date();
 
       reload.setHours(4, 0, 0, 0); // 04:00 's nachts
-
-      if (reload <= now) {
-        reload.setDate(reload.getDate() + 1);
-      }
+      if (reload <= now) reload.setDate(reload.getDate() + 1);
 
       const timeout = reload.getTime() - now.getTime();
-
-      setTimeout(() => {
-        location.reload(true);
-      }, timeout);
+      setTimeout(() => location.reload(true), timeout);
     }
 
     scheduleNightReload();
