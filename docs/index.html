@@ -27,6 +27,8 @@
       --r-md:16px;
 
       --pad:48px;
+
+      --row-alt:#F3F4F6; /* lichtgrijs voor afwisseling */
     }
 
     *{ box-sizing:border-box; }
@@ -190,38 +192,12 @@
     .slot.empty .time,
     .slot.empty .name{ opacity:.22; }
 
-    /* ===== AGENDA ===== */
+    /* ===== AGENDA (nieuw) ===== */
     .agenda-wrap{
-      margin-top:28px;
-      border:2px solid var(--border);
-      border-radius: var(--r-xl);
-      padding:28px;
-      height: 1460px;
+      margin-top:26px;
+      height: 1500px;       /* iets meer omdat we subheaders weghalen */
       overflow:hidden;
-      background:#fff;
-    }
-
-    .agenda-header{
-      display:flex;
-      align-items:baseline;
-      justify-content:space-between;
-      gap:18px;
-      margin-bottom:18px;
-    }
-
-    .agenda-subtitle{
-      font-size:30px;
-      font-weight:900;
-      letter-spacing:-0.01em;
-      margin:0;
-    }
-
-    .agenda-range{
-      font-size:22px;
-      color:var(--muted);
-      margin:0;
-      text-align:right;
-      white-space:nowrap;
+      border-radius: var(--r-xl);
     }
 
     .agenda-list{
@@ -234,10 +210,16 @@
       display:grid;
       grid-template-columns: 240px 140px 1fr;
       gap:18px;
-      padding:18px 18px;
+      padding:20px 22px;
       border:2px solid var(--border);
       border-radius: var(--r-lg);
       align-items:start;
+      background:#fff;
+    }
+
+    /* afwisselend wit/lichtgrijs */
+    .agenda-row.alt{
+      background: var(--row-alt);
     }
 
     .agenda-date{
@@ -256,9 +238,9 @@
     }
 
     .agenda-title{
-      font-size:32px;
-      font-weight:800;
-      line-height:1.1;
+      font-size:34px;
+      font-weight:900;
+      line-height:1.08;
       margin:0;
 
       display:-webkit-box;
@@ -267,29 +249,33 @@
       overflow:hidden;
     }
 
-    /* ✅ genre + zaal in dezelfde "meta"-lijn */
-    .agenda-meta-line{
-      margin-top:8px;
+    /* genre + zaal in blauw */
+    .agenda-meta{
+      margin-top:10px;
       font-size:22px;
-      color:var(--muted);
-      font-weight:800;
-      text-transform:uppercase;
+      font-weight:900;
       letter-spacing:0.08em;
+      text-transform:uppercase;
+      color: var(--brand-blue);
+      opacity: .95;
+
       display:flex;
       flex-wrap:wrap;
-      gap:10px;
+      gap:14px;
       align-items:center;
     }
-    .agenda-meta-pill{
-      padding:6px 10px;
-      border:2px solid var(--border);
+
+    .agenda-tag{
+      padding:7px 12px;
       border-radius:999px;
-      background:#fff;
-      color:#444;
+      border:2px solid rgba(18,66,168,.25);
+      background: rgba(18,66,168,.08);
+      color: var(--brand-blue);
+      font-size:20px;
       font-weight:900;
       letter-spacing:0.06em;
       text-transform:uppercase;
-      font-size:20px;
+      white-space:nowrap;
     }
 
     .agenda-empty{
@@ -346,15 +332,11 @@
         </div>
         <div class="header-right">
           <div class="date" id="todayLabelAgenda">—</div>
-          <div class="meta" id="agendaMeta">—</div>
         </div>
       </div>
 
+      <!-- ✅ meteen de agenda, zonder subtitels -->
       <div class="agenda-wrap">
-        <div class="agenda-header">
-          <p class="agenda-subtitle">Voorstellingen (vandaag → 4 weken)</p>
-          <p class="agenda-range" id="agendaRange">—</p>
-        </div>
         <div class="agenda-list" id="agendaList"></div>
       </div>
     </section>
@@ -393,8 +375,8 @@
     const ROOMPAGE_MS = 12 * 1000;
 
     const screens = ["screen-planning", "screen-agenda", "screen-promo"];
-    const ENABLE_MAIN_ROTATION = true;     // ✅ agenda wordt ook getoond
-    const MAINSCREEN_MS = 20000;           // 20s per scherm
+    const ENABLE_MAIN_ROTATION = true;
+    const MAINSCREEN_MS = 20000;
 
     const ROOM_ORDER = [
       "Stadsschouwburg",
@@ -411,13 +393,16 @@
     // Agenda filters
     const AGENDA_PROFILES = new Set(["E_Podium", "E_educatief"]);
     const HIDE_SCHOOL_LABEL = "schoolvoorstelling";
-    const GENRES = ["muziek","theater","klassiek","familie","film","humor","vorming",];
+    const GENRES = ["muziek","theater","klassiek","familie","film","vorming","humor"];
 
     let lastGoodPlanning = null;
     let lastGoodAgenda = null;
 
     const TZ = "Europe/Brussels";
 
+    /***********************
+     * CANVAS SCALE
+     ***********************/
     function setScaleToFit() {
       const stage = document.getElementById("stage");
       const w = 1080, h = 1920;
@@ -472,7 +457,7 @@
     }
 
     /***********************
-     * PLANNING (nu/straks)
+     * TIME PARSING (planning)
      ***********************/
     function parseTimeToDate(dateISO, hhmm) {
       const [y,m,d] = dateISO.split("-").map(Number);
@@ -495,9 +480,13 @@
       return now >= start && now < end;
     }
 
+    /***********************
+     * HTML HELPERS
+     ***********************/
     function buildSlotHTML(type, activity) {
       const isEmpty = !activity;
       const pillLabel = (type === "now") ? "Nu" : "Straks";
+
       return `
         <div class="slot ${isEmpty ? "empty" : ""}">
           <div class="pill ${type}">${pillLabel}</div>
@@ -507,58 +496,9 @@
       `;
     }
 
-    function mapToCanonicalRoom(locName) {
-      const n = String(locName || "").toLowerCase();
-      if (n === "stadsschouwburg") return "Stadsschouwburg";
-      if (n === "theaterzaal") return "Theaterzaal";
-      if (n === "polyvalente zaal") return "Polyvalente zaal";
-      if (n === "vergaderlokaal 1") return "Vergaderlokaal 1";
-      if (n === "vergaderlokaal 2") return "Vergaderlokaal 2";
-      if (n === "vergaderlokaal 3") return "Vergaderlokaal 3";
-      if (n === "vergaderlokaal 4") return "Vergaderlokaal 4";
-      if (n === "vergaderlokaal a") return "Vergaderlokaal A";
-      if (n.startsWith("repetitieruimte")) return "Repetitieruimte";
-      return null;
-    }
-
-    function computeRoomPlan(items, dateISO) {
-      const now = nowInBrussels();
-      const byRoom = new Map();
-
-      for (const item of items) {
-        const loc = item?.Locatie?.name;
-        const room = mapToCanonicalRoom(loc);
-        if (!room) continue;
-
-        const itemDate = item?.Datum || dateISO;
-        if (itemDate !== dateISO) continue;
-
-        const name = item?.Naam || "";
-        const startLabel = item?.["Getoonde starttijd"];
-        const endLabel = item?.["Getoonde eindtijd"];
-        if (!startLabel || !endLabel) continue;
-
-        const start = parseTimeToDate(itemDate, startLabel);
-        let end = parseTimeToDate(itemDate, endLabel);
-        end = normalizeEnd(start, end);
-
-        if (!byRoom.has(room)) byRoom.set(room, []);
-        byRoom.get(room).push({ name, start, end, startLabel, endLabel });
-      }
-
-      for (const [room, arr] of byRoom.entries()) {
-        arr.sort((a,b)=> a.start - b.start);
-        byRoom.set(room, arr);
-      }
-
-      return ROOM_ORDER.map(roomName => {
-        const arr = byRoom.get(roomName) || [];
-        const current = arr.find(a => isNowWithin(a.start, a.end, now)) || null;
-        const next = arr.find(a => a.start > now) || null;
-        return { roomName, current, next };
-      });
-    }
-
+    /***********************
+     * YESPLAN DATA FETCH
+     ***********************/
     async function fetchArray(url, setLastGood, getLastGood){
       try{
         const res = await fetch(url, { cache:"no-store" });
@@ -577,6 +517,68 @@
       }
     }
 
+    /***********************
+     * ROOM MAPPING
+     ***********************/
+    function mapToCanonicalRoom(locName) {
+      const n = String(locName || "").toLowerCase();
+
+      if (n === "stadsschouwburg") return "Stadsschouwburg";
+      if (n === "theaterzaal") return "Theaterzaal";
+      if (n === "polyvalente zaal") return "Polyvalente zaal";
+
+      if (n === "vergaderlokaal 1") return "Vergaderlokaal 1";
+      if (n === "vergaderlokaal 2") return "Vergaderlokaal 2";
+      if (n === "vergaderlokaal 3") return "Vergaderlokaal 3";
+      if (n === "vergaderlokaal 4") return "Vergaderlokaal 4";
+      if (n === "vergaderlokaal a") return "Vergaderlokaal A";
+
+      if (n.startsWith("repetitieruimte")) return "Repetitieruimte";
+
+      return null;
+    }
+
+    /***********************
+     * COMPUTE NU / STRAKS PER ZAAL
+     ***********************/
+    function computeRoomPlan(items, dateISO) {
+      const now = nowInBrussels();
+
+      const byRoom = new Map();
+      for (const item of items) {
+        const loc = item?.Locatie?.name;
+        const room = mapToCanonicalRoom(loc);
+        if (!room) continue;
+
+        const itemDate = item?.Datum || dateISO;
+        if (itemDate !== dateISO) continue;
+
+        const name = item?.Naam || "";
+        const startLabel = item?.["Getoonde starttijd"];
+        const endLabel = item?.["Getoonde eindtijd"];
+        if (!startLabel || !endLabel) continue;
+
+        const start = parseTimeToDate(dateISO, startLabel);
+        let end = parseTimeToDate(dateISO, endLabel);
+        end = normalizeEnd(start, end);
+
+        if (!byRoom.has(room)) byRoom.set(room, []);
+        byRoom.get(room).push({ name, start, end, startLabel, endLabel });
+      }
+
+      for (const [room, arr] of byRoom.entries()) arr.sort((a,b)=> a.start - b.start);
+
+      return ROOM_ORDER.map(roomName => {
+        const arr = byRoom.get(roomName) || [];
+        const current = arr.find(a => isNowWithin(a.start, a.end, now)) || null;
+        const next = arr.find(a => a.start > now) || null;
+        return { roomName, current, next };
+      });
+    }
+
+    /***********************
+     * PLANNING: slimme titel sizing
+     ***********************/
     function applyNameSizingAndLongCards(container){
       container.querySelectorAll(".room-card").forEach(card => card.classList.remove("long"));
       container.querySelectorAll(".name").forEach(el => {
@@ -593,7 +595,7 @@
     }
 
     /***********************
-     * AGENDA mapping
+     * AGENDA helpers
      ***********************/
     function labelsToLowerNames(labels){
       if (!Array.isArray(labels)) return [];
@@ -667,43 +669,39 @@
         return a.startTime.localeCompare(b.startTime);
       });
 
-      return { filtered, startISO, endISO };
+      return filtered;
     }
 
     function renderAgenda(items){
       const list = document.getElementById("agendaList");
-      const meta = document.getElementById("agendaMeta");
-      const range = document.getElementById("agendaRange");
-
-      const { filtered, startISO, endISO } = agendaFilterAndSort(items);
-
-      range.textContent = `${formatDateShortNL(startISO)} → ${formatDateShortNL(endISO)}`;
-      meta.textContent = filtered.length ? `${filtered.length} items` : `Geen items`;
+      const filtered = agendaFilterAndSort(items);
 
       if (!filtered.length){
         list.innerHTML = `<div class="agenda-empty">Geen voorstellingen in de komende 4 weken.</div>`;
         return;
       }
 
-      const MAX = 14;
+      const MAX = 16;
       const slice = filtered.slice(0, MAX);
 
-      list.innerHTML = slice.map(row => {
-        const pieces = [];
-        if (row.genres.length) pieces.push(row.genres.join(" • ").toUpperCase());
-        if (row.zaal) pieces.push(row.zaal.toUpperCase());
+      list.innerHTML = slice.map((row, i) => {
+        const isAlt = (i % 2 === 1);
 
-        const metaLine = pieces.length
-          ? `<div class="agenda-meta-line"><span class="agenda-meta-pill">${escapeHtml(pieces.join(" • "))}</span></div>`
+        const tags = [];
+        if (row.genres.length) tags.push(...row.genres.map(g => g.toUpperCase()));
+        if (row.zaal) tags.push(row.zaal.toUpperCase());
+
+        const tagsHtml = tags.length
+          ? `<div class="agenda-meta">${tags.map(t => `<span class="agenda-tag">${escapeHtml(t)}</span>`).join("")}</div>`
           : ``;
 
         return `
-          <div class="agenda-row">
+          <div class="agenda-row ${isAlt ? "alt" : ""}">
             <p class="agenda-date">${escapeHtml(row.dateLabel)}</p>
             <p class="agenda-time">${escapeHtml(row.startTime)}</p>
             <div>
               <p class="agenda-title">${escapeHtml(row.name)}</p>
-              ${metaLine}
+              ${tagsHtml}
             </div>
           </div>
         `;
@@ -711,7 +709,7 @@
     }
 
     /***********************
-     * PLANNING render + paging
+     * RENDER PLANNING (6 per page + auto rotate)
      ***********************/
     let roomsAll = [];
     let roomPageIndex = 0;
@@ -723,14 +721,15 @@
 
       const totalRooms = roomsAll.length;
       const totalPages = Math.max(1, Math.ceil(totalRooms / ROOMS_PER_VIEW));
+
       if (roomPageIndex >= totalPages) roomPageIndex = 0;
 
       const start = roomPageIndex * ROOMS_PER_VIEW;
       const slice = roomsAll.slice(start, start + ROOMS_PER_VIEW);
 
       grid.innerHTML = slice.map(r => {
-        const nowAct = r.current ? { startLabel:r.current.startLabel, endLabel:r.current.endLabel, name:r.current.name } : null;
-        const nextAct = r.next ? { startLabel:r.next.startLabel, endLabel:r.next.endLabel, name:r.next.name } : null;
+        const nowAct = r.current ? { startLabel: r.current.startLabel, endLabel: r.current.endLabel, name: r.current.name } : null;
+        const nextAct = r.next ? { startLabel: r.next.startLabel, endLabel: r.next.endLabel, name: r.next.name } : null;
 
         return `
           <article class="room-card">
@@ -752,6 +751,7 @@
 
     function startRoomPagination() {
       if (roomPageTimer) clearInterval(roomPageTimer);
+
       const totalPages = Math.ceil(roomsAll.length / ROOMS_PER_VIEW);
       if (totalPages <= 1) return;
 
@@ -762,7 +762,7 @@
     }
 
     /***********************
-     * refresh loop
+     * MAIN REFRESH LOOP
      ***********************/
     async function refreshAll() {
       const today = nowInBrussels();
@@ -777,6 +777,7 @@
         (d)=>{ lastGoodPlanning = d; },
         ()=>lastGoodPlanning
       );
+
       roomsAll = computeRoomPlan(planningItems, dateISO);
       roomPageIndex = 0;
       renderRoomPage();
@@ -791,7 +792,8 @@
     }
 
     /***********************
-     * main screen rotation
+     * MAIN SCREEN ROTATION
+     * (robust via setTimeout chain)
      ***********************/
     function setActiveScreen(id){
       screens.forEach(s => document.getElementById(s).classList.toggle("active", s === id));
@@ -800,23 +802,34 @@
     function initMainRotation(){
       if (!ENABLE_MAIN_ROTATION) return;
       let idx = 0;
-      setInterval(() => {
+      setActiveScreen(screens[idx]);
+
+      function step(){
         idx = (idx + 1) % screens.length;
         setActiveScreen(screens[idx]);
-      }, MAINSCREEN_MS);
+        setTimeout(step, MAINSCREEN_MS);
+      }
+      setTimeout(step, MAINSCREEN_MS);
     }
 
+    /***********************
+     * NIGHTLY HARD REFRESH
+     ***********************/
     function scheduleNightReload() {
       const now = new Date();
       const reload = new Date();
+
       reload.setHours(4, 0, 0, 0);
       if (reload <= now) reload.setDate(reload.getDate() + 1);
+
       setTimeout(() => location.reload(true), reload.getTime() - now.getTime());
     }
 
+    // init
     setScaleToFit();
     window.addEventListener("resize", setScaleToFit);
     scheduleNightReload();
+
     refreshAll();
     setInterval(refreshAll, REFRESH_MS);
     initMainRotation();
