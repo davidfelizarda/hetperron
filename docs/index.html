@@ -759,19 +759,74 @@
     /***********************
      * PROMO (eerste slide laden)
      ***********************/
-    async function loadFirstPromoImage(){
-      try{
-        const res = await fetch(`promo/promo.json?ts=${Date.now()}`, { cache:"no-store" });
-        if(!res.ok) return;
-        const list = await res.json();
-        if (!Array.isArray(list) || !list.length) return;
+   /***********************
+ * PROMO SLIDESHOW
+ ***********************/
+const PROMO_SLIDE_MS = 10000; // 10s per afbeelding
+const PROMO_FADE_MS  = 500;
 
-        const img = document.getElementById("promoImg");
-        if (img && !img.src) img.src = list[0];
-      }catch(e){
-        console.error("promo load failed", e);
-      }
-    }
+let promoSlides = [];
+let promoIndex = 0;
+let promoTimer = null;
+let promoRunning = false;
+
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+async function loadPromoSlides(){
+  try{
+    const res = await fetch(`promo/promo.json?ts=${Date.now()}`, { cache:"no-store" });
+    if(!res.ok) return [];
+    const list = await res.json();
+    return Array.isArray(list) ? list : [];
+  }catch(e){
+    console.error("promo load failed", e);
+    return [];
+  }
+}
+
+function stopPromoSlideshow(){
+  promoRunning = false;
+  if (promoTimer) { clearTimeout(promoTimer); promoTimer = null; }
+}
+
+async function startPromoSlideshow(){
+  if (promoRunning) return;
+  promoRunning = true;
+
+  promoSlides = await loadPromoSlides();
+  promoIndex = 0;
+
+  const img = document.getElementById("promoImg");
+  if (!img || !promoSlides.length) return;
+
+  img.style.transition = `opacity ${PROMO_FADE_MS}ms linear`;
+
+  async function step(){
+    if (!promoRunning) return;
+
+    // fade out
+    img.style.opacity = "0";
+    await sleep(PROMO_FADE_MS);
+
+    // set new src
+    const src = promoSlides[promoIndex];
+    img.src = `${src}?ts=${Date.now()}`;
+    await sleep(50);
+
+    // fade in
+    img.style.opacity = "1";
+
+    // next
+    promoIndex = (promoIndex + 1) % promoSlides.length;
+
+    promoTimer = setTimeout(step, PROMO_SLIDE_MS);
+  }
+
+  // start meteen met zichtbaar
+  img.style.opacity = "0";
+  step();
+}
+
 
     /***********************
      * MAIN REFRESH LOOP
@@ -809,8 +864,12 @@
      * MAIN SCREEN ROTATION
      ***********************/
     function setActiveScreen(id){
-      screens.forEach(s => document.getElementById(s).classList.toggle("active", s === id));
-    }
+  screens.forEach(s => document.getElementById(s).classList.toggle("active", s === id));
+
+  if (id === "screen-promo") startPromoSlideshow();
+  else stopPromoSlideshow();
+}
+
 
     function initMainRotation(){
       if (!ENABLE_MAIN_ROTATION) return;
