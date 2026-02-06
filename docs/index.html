@@ -18,8 +18,8 @@
       --muted:#6B6B6B;
       --text:#111111;
 
-      --pill-now:#DDEB00;     /* geelgroen */
-      --pill-next:#F08AD8;    /* roze */
+      --pill-now:#DDEB00;
+      --pill-next:#F08AD8;
       --pill-text:#111111;
 
       --r-xl:34px;
@@ -32,13 +32,13 @@
     *{ box-sizing:border-box; }
     body{
       margin:0;
-      font-family: "Albert Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background:#111; /* buiten het canvas */
+      font-family:"Albert Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:#111;
       color:var(--text);
       overflow:hidden;
     }
 
-    /* === 9:16 portrait canvas === */
+    /* 9:16 canvas */
     .stage{
       width:1080px;
       height:1920px;
@@ -65,9 +65,8 @@
       border-radius: var(--r-xl);
       padding:42px;
       color:#fff;
-
       display:grid;
-      grid-template-columns: 1fr auto; /* links vast, rechts datum */
+      grid-template-columns: 1fr auto;
       align-items:end;
     }
 
@@ -95,25 +94,16 @@
       letter-spacing:-0.02em;
     }
 
-    .room-name{
-      letter-spacing:-0.01em;
-    }
-
     .header-right{
       text-align:right;
       font-size:30px;
       line-height:1.15;
       opacity:.95;
     }
+    .header-right .date{ font-weight:800; }
+    .header-right .meta{ opacity:.9; }
 
-    .header-right .date{
-      font-weight:800;
-    }
-    .header-right .meta{
-      opacity:.9;
-    }
-
-    /* Grid of rooms */
+    /* === SCREEN 1: Planning grid === */
     .grid{
       margin-top:36px;
       display:grid;
@@ -126,7 +116,7 @@
       border:2px solid var(--border);
       border-radius: var(--r-lg);
       padding:22px;
-      min-height: 0;
+      min-height:0;
     }
 
     .room-head{
@@ -142,19 +132,15 @@
       line-height:1.05;
       font-weight:800;
       margin:0;
-      letter-spacing:-0.5px;
+      letter-spacing:-0.01em;
     }
 
     .slot{
       border:2px solid var(--border);
       border-radius: var(--r-md);
-      padding:16px 16px 24px 16px; /* extra ademruimte onderaan */
+      padding:16px 16px 24px 16px;
       margin-top:14px;
-      
-
-      /* was 168px — te klein voor 3 regels; dit voorkomt afsnijden */
-     min-height: 168px; padding:16px 16px 18px 16px; }
-
+      min-height: 220px;
       display:flex;
       flex-direction:column;
       justify-content:flex-start;
@@ -182,7 +168,6 @@
       margin:0;
     }
 
-    /* Titel: max 3 regels + automatische verkleining */
     .name{
       font-size:34px;
       line-height:1.12;
@@ -192,7 +177,7 @@
 
       display:-webkit-box;
       -webkit-box-orient: vertical;
-      -webkit-line-clamp: 3;   /* max 3 regels zichtbaar */
+      -webkit-line-clamp: 3;
       overflow:hidden;
     }
     .name.small{ font-size:28px; }
@@ -202,7 +187,103 @@
     .slot.empty .time,
     .slot.empty .name{ opacity:.22; }
 
-    /* Placeholder screens */
+    /* === SCREEN 2: Agenda list === */
+    .agenda-wrap{
+      margin-top:36px;
+      border:2px solid var(--border);
+      border-radius: var(--r-xl);
+      padding:28px;
+      height: 1460px; /* vaste hoogte voor nette signage */
+      overflow:hidden;
+      background:#fff;
+    }
+
+    .agenda-header{
+      display:flex;
+      align-items:baseline;
+      justify-content:space-between;
+      gap:18px;
+      margin-bottom:18px;
+    }
+
+    .agenda-subtitle{
+      font-size:30px;
+      font-weight:900;
+      letter-spacing:-0.01em;
+      margin:0;
+    }
+
+    .agenda-range{
+      font-size:22px;
+      color:var(--muted);
+      margin:0;
+      text-align:right;
+      white-space:nowrap;
+    }
+
+    .agenda-list{
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+    }
+
+    .agenda-row{
+      display:grid;
+      grid-template-columns: 240px 140px 1fr; /* Datum | Tijd | Naam+genre */
+      gap:18px;
+      padding:18px 18px;
+      border:2px solid var(--border);
+      border-radius: var(--r-lg);
+      align-items:start;
+    }
+
+    .agenda-date{
+      font-size:30px;
+      font-weight:900;
+      letter-spacing:-0.01em;
+      line-height:1.05;
+      margin:0;
+    }
+
+    .agenda-time{
+      font-size:30px;
+      font-weight:900;
+      line-height:1.05;
+      margin:0;
+    }
+
+    .agenda-title{
+      font-size:32px;
+      font-weight:800;
+      line-height:1.1;
+      margin:0;
+
+      display:-webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 2;
+      overflow:hidden;
+    }
+
+    .agenda-genre{
+      margin-top:8px;
+      font-size:22px;
+      color:var(--muted);
+      font-weight:700;
+      text-transform:uppercase;
+      letter-spacing:0.08em;
+    }
+
+    .agenda-empty{
+      color:var(--muted);
+      font-size:30px;
+      font-weight:700;
+      padding:22px;
+      border:2px dashed #D0D0D0;
+      border-radius:26px;
+      text-align:center;
+    }
+
+    /* Placeholder promo */
     .placeholder{
       margin-top:42px;
       border:2px dashed #D0D0D0;
@@ -238,7 +319,7 @@
       <div class="grid" id="roomsGrid"></div>
     </section>
 
-    <!-- SCREEN 2: AGENDA (placeholder) -->
+    <!-- SCREEN 2: AGENDA -->
     <section class="screen" id="screen-agenda">
       <div class="header">
         <div class="header-left">
@@ -247,13 +328,16 @@
         </div>
         <div class="header-right">
           <div class="date" id="todayLabelAgenda">—</div>
-          <div class="meta">Placeholder</div>
+          <div class="meta" id="agendaMeta">—</div>
         </div>
       </div>
 
-      <div class="placeholder">
-        Agenda blijft voorlopig placeholder.<br/>
-        (Later uit Excel/Yesplan/website)
+      <div class="agenda-wrap">
+        <div class="agenda-header">
+          <p class="agenda-subtitle">Voorstellingen (vandaag → 4 weken)</p>
+          <p class="agenda-range" id="agendaRange">—</p>
+        </div>
+        <div class="agenda-list" id="agendaList"></div>
       </div>
     </section>
 
@@ -282,14 +366,16 @@
     /***********************
      * CONFIG
      ***********************/
-    const WORKER_URL = "https://hetperron-yesplan-proxy.davidfelizarda.workers.dev/";
-    const ROOMS_PER_VIEW = 6;
-    const REFRESH_MS = 2 * 60 * 1000;     // elke 2 minuten data opnieuw ophalen
-    const ROOMPAGE_MS = 12 * 1000;        // wissel tussen pagina's met zalen
+    const WORKER_BASE = "https://hetperron-yesplan-proxy.davidfelizarda.workers.dev/"; // jouw worker
+    const ENDPOINT_PLANNING = joinUrl(WORKER_BASE, "planning");
+    const ENDPOINT_AGENDA   = joinUrl(WORKER_BASE, "agenda");
 
-    // Hoofdschermen (laten staan, maar nog geen rotatie zoals gevraagd)
+    const ROOMS_PER_VIEW = 4;
+    const REFRESH_MS = 2 * 60 * 1000;
+    const ROOMPAGE_MS = 10 * 1000;
+
     const screens = ["screen-planning", "screen-agenda", "screen-promo"];
-    const ENABLE_MAIN_ROTATION = false;   // later pas op true zetten
+    const ENABLE_MAIN_ROTATION = false;
 
     const ROOM_ORDER = [
       "Stadsschouwburg",
@@ -303,26 +389,48 @@
       "Repetitieruimte"
     ];
 
-    /***********************
-     * FALLBACK (laatste geldige data)
-     ***********************/
-    let lastGoodData = null;
+    // Agenda filters
+    const AGENDA_PROFILES = new Set(["E_Podium", "E_educatief"]);
+    const AGENDA_HIDE_LABEL = /schoolvoorstelling/i;
+    const GENRES = ["muziek","theater","klassiek","familie"]; // uit labels
+
+    let lastGoodPlanning = null;
+    let lastGoodAgenda = null;
 
     /***********************
-     * CANVAS SCALE
+     * helpers
      ***********************/
+    const TZ = "Europe/Brussels";
+    function joinUrl(base, path){
+      if (!base.endsWith("/")) base += "/";
+      return base + path.replace(/^\/+/, "");
+    }
     function setScaleToFit() {
       const stage = document.getElementById("stage");
       const w = 1080, h = 1920;
       const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
       stage.style.setProperty("--scale", String(scale));
     }
-
-    /***********************
-     * DATE FORMAT
-     ***********************/
-    const TZ = "Europe/Brussels";
     function capitalize(s){ return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+    function nowInBrussels() {
+      const s = new Date().toLocaleString("en-US", { timeZone: TZ });
+      return new Date(s);
+    }
+
+    function todayISO() {
+      return new Date().toLocaleDateString("en-CA", { timeZone: TZ }); // YYYY-MM-DD
+    }
+
+    function addDaysISO(dateISO, days){
+      const [y,m,d] = dateISO.split("-").map(Number);
+      const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0)); // midday UTC to avoid DST edges
+      dt.setUTCDate(dt.getUTCDate() + days);
+      const yy = dt.getUTCFullYear();
+      const mm = String(dt.getUTCMonth()+1).padStart(2,"0");
+      const dd = String(dt.getUTCDate()).padStart(2,"0");
+      return `${yy}-${mm}-${dd}`;
+    }
 
     function formatTodayLabel(dateObj) {
       const weekday = dateObj.toLocaleDateString("nl-BE", { weekday: "long", timeZone: TZ });
@@ -331,25 +439,31 @@
       return `${capitalize(weekday)} ${day} ${month}`;
     }
 
-    function todayISO() {
-      return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+    function formatDateShortNL(dateISO){
+      // "2026-02-06" -> "vr 6 feb"
+      const [y,m,d] = dateISO.split("-").map(Number);
+      const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0));
+      const w = dt.toLocaleDateString("nl-BE", { weekday:"short" });
+      const day = dt.toLocaleDateString("nl-BE", { day:"numeric" });
+      const mon = dt.toLocaleDateString("nl-BE", { month:"short" });
+      return `${w} ${day} ${mon}`;
+    }
+
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
     }
 
     /***********************
-     * TIME (Brussels-safe)
-     ***********************/
-    function nowInBrussels() {
-      const s = new Date().toLocaleString("en-US", { timeZone: TZ });
-      return new Date(s);
-    }
-
-    /***********************
-     * TIME PARSING (Brussels-consistent)
+     * planning time parsing
      ***********************/
     function parseTimeToDate(dateISO, hhmm) {
       const [y,m,d] = dateISO.split("-").map(Number);
       const [hh,mm] = String(hhmm).split(":").map(Number);
-
       const s = `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")} ${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00`;
       const brusselsStr = new Date(s).toLocaleString("en-US", { timeZone: TZ });
       return new Date(brusselsStr);
@@ -369,21 +483,11 @@
     }
 
     /***********************
-     * HTML HELPERS
+     * planning slots
      ***********************/
-    function escapeHtml(str){
-      return String(str ?? "")
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
-    }
-
     function buildSlotHTML(type, activity) {
       const isEmpty = !activity;
       const pillLabel = (type === "now") ? "Nu" : "Straks";
-
       return `
         <div class="slot ${isEmpty ? "empty" : ""}">
           <div class="pill ${type}">${pillLabel}</div>
@@ -393,59 +497,33 @@
       `;
     }
 
-    /***********************
-     * YESPLAN DATA FETCH (via Worker)
-     * + fallback op laatste geldige data
-     ***********************/
-    async function fetchYesplan() {
-      try {
-        const res = await fetch(WORKER_URL, { cache: "no-store" });
-        if (!res.ok) {
-          const txt = await res.text().catch(()=> "");
-          throw new Error(`Worker error ${res.status}: ${txt}`);
-        }
-        const data = await res.json();
-        if (!Array.isArray(data)) throw new Error("Worker returned non-array JSON.");
-
-        lastGoodData = data;
-        return data;
-      } catch (err) {
-        console.error("fetchYesplan failed:", err);
-
-        if (lastGoodData) return lastGoodData;
-        return [];
-      }
+    function applyNameSizing(container){
+      container.querySelectorAll(".name").forEach(el => {
+        const len = el.textContent.trim().length;
+        el.classList.remove("small","tiny");
+        if (len > 70) el.classList.add("small");
+        if (len > 95) { el.classList.remove("small"); el.classList.add("tiny"); }
+      });
     }
 
-    /***********************
-     * ROOM MAPPING
-     ***********************/
     function mapToCanonicalRoom(locName) {
       const n = String(locName || "").toLowerCase();
-
       if (n === "stadsschouwburg") return "Stadsschouwburg";
       if (n === "theaterzaal") return "Theaterzaal";
       if (n === "polyvalente zaal") return "Polyvalente zaal";
-
       if (n === "vergaderlokaal 1") return "Vergaderlokaal 1";
       if (n === "vergaderlokaal 2") return "Vergaderlokaal 2";
       if (n === "vergaderlokaal 3") return "Vergaderlokaal 3";
       if (n === "vergaderlokaal 4") return "Vergaderlokaal 4";
       if (n === "vergaderlokaal a") return "Vergaderlokaal A";
-
-      // Repetitieruimte A/B/... samenvoegen
       if (n.startsWith("repetitieruimte")) return "Repetitieruimte";
-
-      return null; // alles wat we niet tonen
+      return null;
     }
 
-    /***********************
-     * COMPUTE NU / STRAKS PER ZAAL
-     ***********************/
     function computeRoomPlan(items, dateISO) {
       const now = nowInBrussels();
-
       const byRoom = new Map();
+
       for (const item of items) {
         const loc = item?.Locatie?.name;
         const room = mapToCanonicalRoom(loc);
@@ -472,37 +550,141 @@
         byRoom.set(room, arr);
       }
 
-      const rooms = ROOM_ORDER.map(roomName => {
+      return ROOM_ORDER.map(roomName => {
         const arr = byRoom.get(roomName) || [];
-
         const current = arr.find(a => isNowWithin(a.start, a.end, now)) || null;
         const next = arr.find(a => a.start > now) || null;
-
         return { roomName, current, next };
       });
-
-      return rooms;
     }
 
     /***********************
-     * RENDER (6 per page + auto rotate)
+     * Fetch helpers
+     ***********************/
+    async function fetchArray(url, lastGoodRefSetter, lastGoodValueGetter){
+      try{
+        const res = await fetch(url, { cache:"no-store" });
+        if(!res.ok){
+          const txt = await res.text().catch(()=> "");
+          throw new Error(`HTTP ${res.status}: ${txt}`);
+        }
+        const data = await res.json();
+        if(!Array.isArray(data)) throw new Error("Non-array JSON");
+        lastGoodRefSetter(data);
+        return data;
+      }catch(e){
+        console.error("fetch failed:", url, e);
+        const fallback = lastGoodValueGetter();
+        return fallback ? fallback : [];
+      }
+    }
+
+    /***********************
+     * Agenda mapping
+     ***********************/
+    function pickStartTime(item){
+      const ts = item?.["Voorstelling (Tijdschema’s)"];
+      if (ts && typeof ts === "string" && ts.includes("-")) {
+        return ts.split("-")[0].trim(); // "10:00 - 11:30" -> "10:00"
+      }
+      const t = item?.["Getoonde starttijd"];
+      if (typeof t === "string") return t;
+      return t ? String(t).slice(0,5) : ""; // fallback for weird formats
+    }
+
+    function extractGenre(labelsRaw){
+      const s = String(labelsRaw || "").toLowerCase();
+      for (const g of GENRES){
+        if (s.includes(g)) return g;
+      }
+      return "";
+    }
+
+    function agendaFilterAndSort(items){
+      const startISO = todayISO();
+      const endISO = addDaysISO(startISO, 28);
+
+      const filtered = items
+        .filter(it => {
+          const prof = it?.Profiel?.name || it?.Profiel || "";
+          if (!AGENDA_PROFILES.has(String(prof))) return false;
+
+          const dateISO = it?.Datum;
+          if (!dateISO || typeof dateISO !== "string") return false;
+          if (dateISO < startISO || dateISO > endISO) return false;
+
+          const labels = it?.Labels;
+          if (labels && AGENDA_HIDE_LABEL.test(String(labels))) return false;
+
+          // safety: must have name + time
+          const name = it?.Naam;
+          if (!name) return false;
+          const startT = pickStartTime(it);
+          if (!startT) return false;
+
+          return true;
+        })
+        .map(it => {
+          const dateISO = it.Datum;
+          const startT = pickStartTime(it);
+          return {
+            dateISO,
+            dateLabel: formatDateShortNL(dateISO),
+            startTime: startT,
+            name: String(it.Naam || ""),
+            genre: extractGenre(it.Labels)
+          };
+        });
+
+      // sort chronologisch: datum + startTime
+      filtered.sort((a,b) => {
+        if (a.dateISO !== b.dateISO) return a.dateISO.localeCompare(b.dateISO);
+        return a.startTime.localeCompare(b.startTime);
+      });
+
+      return { filtered, startISO, endISO };
+    }
+
+    function renderAgenda(items){
+      const list = document.getElementById("agendaList");
+      const meta = document.getElementById("agendaMeta");
+      const range = document.getElementById("agendaRange");
+
+      const { filtered, startISO, endISO } = agendaFilterAndSort(items);
+
+      range.textContent = `${formatDateShortNL(startISO)} → ${formatDateShortNL(endISO)}`;
+      meta.textContent = filtered.length ? `${filtered.length} items` : `Geen items`;
+
+      if (!filtered.length){
+        list.innerHTML = `<div class="agenda-empty">Geen voorstellingen in de komende 4 weken.</div>`;
+        return;
+      }
+
+      // toon bv. max 14 items op één scherm (past netjes)
+      const MAX = 14;
+      const slice = filtered.slice(0, MAX);
+
+      list.innerHTML = slice.map(row => {
+        const genre = row.genre ? `<div class="agenda-genre">${escapeHtml(row.genre)}</div>` : "";
+        return `
+          <div class="agenda-row">
+            <p class="agenda-date">${escapeHtml(row.dateLabel)}</p>
+            <p class="agenda-time">${escapeHtml(row.startTime)}</p>
+            <div>
+              <p class="agenda-title">${escapeHtml(row.name)}</p>
+              ${genre}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    /***********************
+     * Rendering planning pages
      ***********************/
     let roomsAll = [];
     let roomPageIndex = 0;
     let roomPageTimer = null;
-
-    function applyNameSizing(container){
-      container.querySelectorAll(".name").forEach(el => {
-        const len = el.textContent.trim().length;
-
-        el.classList.remove("small","tiny");
-        if (len > 70) el.classList.add("small");
-        if (len > 95) {
-          el.classList.remove("small");
-          el.classList.add("tiny");
-        }
-      });
-    }
 
     function renderRoomPage() {
       const grid = document.getElementById("roomsGrid");
@@ -510,15 +692,14 @@
 
       const totalRooms = roomsAll.length;
       const totalPages = Math.max(1, Math.ceil(totalRooms / ROOMS_PER_VIEW));
-
       if (roomPageIndex >= totalPages) roomPageIndex = 0;
 
       const start = roomPageIndex * ROOMS_PER_VIEW;
       const slice = roomsAll.slice(start, start + ROOMS_PER_VIEW);
 
       grid.innerHTML = slice.map(r => {
-        const nowAct = r.current ? { startLabel: r.current.startLabel, endLabel: r.current.endLabel, name: r.current.name } : null;
-        const nextAct = r.next ? { startLabel: r.next.startLabel, endLabel: r.next.endLabel, name: r.next.name } : null;
+        const nowAct = r.current ? { startLabel:r.current.startLabel, endLabel:r.current.endLabel, name:r.current.name } : null;
+        const nextAct = r.next ? { startLabel:r.next.startLabel, endLabel:r.next.endLabel, name:r.next.name } : null;
 
         return `
           <article class="room-card">
@@ -540,7 +721,6 @@
 
     function startRoomPagination() {
       if (roomPageTimer) clearInterval(roomPageTimer);
-
       const totalPages = Math.ceil(roomsAll.length / ROOMS_PER_VIEW);
       if (totalPages <= 1) return;
 
@@ -553,7 +733,7 @@
     /***********************
      * MAIN REFRESH LOOP
      ***********************/
-    async function refreshPlanning() {
+    async function refreshAll() {
       const today = nowInBrussels();
       document.getElementById("todayLabel").textContent = formatTodayLabel(today);
       document.getElementById("todayLabelAgenda").textContent = formatTodayLabel(today);
@@ -561,20 +741,24 @@
 
       const dateISO = todayISO();
 
-      const items = await fetchYesplan();
-      roomsAll = computeRoomPlan(items, dateISO);
-
+      // planning
+      const planningItems = await fetchArray(
+        ENDPOINT_PLANNING,
+        (d)=>{ lastGoodPlanning = d; },
+        ()=>lastGoodPlanning
+      );
+      roomsAll = computeRoomPlan(planningItems, dateISO);
       roomPageIndex = 0;
       renderRoomPage();
       startRoomPagination();
 
-      if ((!items || items.length === 0) && !lastGoodData) {
-        roomsAll = ROOM_ORDER.map(roomName => ({ roomName, current:null, next:null }));
-        roomPageIndex = 0;
-        renderRoomPage();
-        startRoomPagination();
-        document.getElementById("pageLabel").textContent = "Planning (geen data)";
-      }
+      // agenda
+      const agendaItems = await fetchArray(
+        ENDPOINT_AGENDA,
+        (d)=>{ lastGoodAgenda = d; },
+        ()=>lastGoodAgenda
+      );
+      renderAgenda(agendaItems);
     }
 
     /***********************
@@ -593,28 +777,24 @@
       }, 15000);
     }
 
-    // init
-    setScaleToFit();
-    window.addEventListener("resize", setScaleToFit);
-
     /***********************
      * NIGHTLY HARD REFRESH
      ***********************/
     function scheduleNightReload() {
       const now = new Date();
       const reload = new Date();
-
-      reload.setHours(4, 0, 0, 0); // 04:00 's nachts
+      reload.setHours(4, 0, 0, 0);
       if (reload <= now) reload.setDate(reload.getDate() + 1);
-
       const timeout = reload.getTime() - now.getTime();
       setTimeout(() => location.reload(true), timeout);
     }
 
+    // init
+    setScaleToFit();
+    window.addEventListener("resize", setScaleToFit);
     scheduleNightReload();
-
-    refreshPlanning();
-    setInterval(refreshPlanning, REFRESH_MS);
+    refreshAll();
+    setInterval(refreshAll, REFRESH_MS);
     initMainRotation();
   </script>
 </body>
