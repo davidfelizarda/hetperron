@@ -307,27 +307,43 @@
     /***********************
      * DATE FORMAT
      ***********************/
+    const TZ = "Europe/Brussels";
     function capitalize(s){ return s ? s[0].toUpperCase() + s.slice(1) : s; }
 
     function formatTodayLabel(dateObj) {
-      const weekday = dateObj.toLocaleDateString("nl-BE", { weekday: "long", timeZone: "Europe/Brussels" });
-      const day = dateObj.toLocaleDateString("nl-BE", { day: "numeric", timeZone: "Europe/Brussels" });
-      const month = dateObj.toLocaleDateString("nl-BE", { month: "short", timeZone: "Europe/Brussels" });
+      const weekday = dateObj.toLocaleDateString("nl-BE", { weekday: "long", timeZone: TZ });
+      const day = dateObj.toLocaleDateString("nl-BE", { day: "numeric", timeZone: TZ });
+      const month = dateObj.toLocaleDateString("nl-BE", { month: "short", timeZone: TZ });
       return `${capitalize(weekday)} ${day} ${month}`;
     }
 
     function todayISO() {
       // YYYY-MM-DD in Europe/Brussels (belangrijk rond middernacht)
-      return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Brussels" });
+      return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
     }
 
     /***********************
-     * TIME PARSING
+     * TIME (Brussels-safe)
+     * Zorgt dat "nu" klopt, ook als signage device in UTC staat.
+     ***********************/
+    function nowInBrussels() {
+      // We nemen de Brusselse local-time string en bouwen daar een Date object van.
+      // Dit voorkomt afwijkingen als het toestel in een andere timezone staat.
+      const s = new Date().toLocaleString("en-US", { timeZone: TZ });
+      return new Date(s);
+    }
+
+    /***********************
+     * TIME PARSING (Brussels-consistent)
      ***********************/
     function parseTimeToDate(dateISO, hhmm) {
       const [y,m,d] = dateISO.split("-").map(Number);
       const [hh,mm] = String(hhmm).split(":").map(Number);
-      return new Date(y, m-1, d, hh, mm, 0, 0);
+
+      // Bouw een "YYYY-MM-DD HH:MM:SS" string en interpreteer die in Brussels
+      const s = `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")} ${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00`;
+      const brusselsStr = new Date(s).toLocaleString("en-US", { timeZone: TZ });
+      return new Date(brusselsStr);
     }
 
     function normalizeEnd(startDate, endDate) {
@@ -416,9 +432,13 @@
 
     /***********************
      * COMPUTE NU / STRAKS PER ZAAL
+     * - "NU" = lopende activiteit (als die er is)
+     * - "STRAX" = eerstvolgende activiteit van vandaag (ook als het ochtend is)
+     *   en onafhankelijk van of er nu iets bezig is.
      ***********************/
     function computeRoomPlan(items, dateISO) {
-      const now = new Date();
+      // IMPORTANT: "nu" in Europe/Brussels, onafhankelijk van device timezone
+      const now = nowInBrussels();
 
       // group by canonical room
       const byRoom = new Map();
@@ -427,13 +447,17 @@
         const room = mapToCanonicalRoom(loc);
         if (!room) continue;
 
+        // (optioneel maar veiliger) enkel items voor de gevraagde dag
+        const itemDate = item?.Datum || dateISO;
+        if (itemDate !== dateISO) continue;
+
         const name = item?.Naam || "";
         const startLabel = item?.["Getoonde starttijd"];
         const endLabel = item?.["Getoonde eindtijd"];
         if (!startLabel || !endLabel) continue;
 
-        const start = parseTimeToDate(dateISO, startLabel);
-        let end = parseTimeToDate(dateISO, endLabel);
+        const start = parseTimeToDate(itemDate, startLabel);
+        let end = parseTimeToDate(itemDate, endLabel);
         end = normalizeEnd(start, end);
 
         if (!byRoom.has(room)) byRoom.set(room, []);
@@ -450,17 +474,11 @@
       const rooms = ROOM_ORDER.map(roomName => {
         const arr = byRoom.get(roomName) || [];
 
+        // NU: lopende activiteit (kan null zijn)
         const current = arr.find(a => isNowWithin(a.start, a.end, now)) || null;
 
-        let next = null;
-        if (current) {
-          next = arr.find(a => a.start > current.end) || null;
-        } else {
-          next = arr.find(a => a.start > now) || null;
-        }
-
-        // Spec: als er maar 1 activiteit is -> straks leeglaten
-        if (arr.length <= 1) next = null;
+        // STRAX: eerstvolgende activiteit van vandaag (ook als het nog ochtend is)
+        const next = arr.find(a => a.start > now) || null;
 
         return { roomName, current, next };
       });
@@ -523,8 +541,8 @@
      * MAIN REFRESH LOOP
      ***********************/
     async function refreshPlanning() {
-      // header date labels
-      const today = new Date();
+      // header date labels (toon altijd Brussels-datum)
+      const today = nowInBrussels();
       document.getElementById("todayLabel").textContent = formatTodayLabel(today);
       document.getElementById("todayLabelAgenda").textContent = formatTodayLabel(today);
       document.getElementById("todayLabelPromo").textContent = formatTodayLabel(today);
@@ -567,28 +585,29 @@
     // init
     setScaleToFit();
     window.addEventListener("resize", setScaleToFit);
-/***********************
- * NIGHTLY HARD REFRESH
- * (voorkomt TV browser issues)
- ***********************/
-function scheduleNightReload() {
-  const now = new Date();
-  const reload = new Date();
 
-  reload.setHours(4, 0, 0, 0); // 04:00 's nachts
+    /***********************
+     * NIGHTLY HARD REFRESH
+     * (voorkomt TV browser issues)
+     ***********************/
+    function scheduleNightReload() {
+      const now = new Date();
+      const reload = new Date();
 
-  if (reload <= now) {
-    reload.setDate(reload.getDate() + 1);
-  }
+      reload.setHours(4, 0, 0, 0); // 04:00 's nachts
 
-  const timeout = reload.getTime() - now.getTime();
+      if (reload <= now) {
+        reload.setDate(reload.getDate() + 1);
+      }
 
-  setTimeout(() => {
-    location.reload(true);
-  }, timeout);
-}
+      const timeout = reload.getTime() - now.getTime();
 
-scheduleNightReload();
+      setTimeout(() => {
+        location.reload(true);
+      }, timeout);
+    }
+
+    scheduleNightReload();
 
     refreshPlanning();
     setInterval(refreshPlanning, REFRESH_MS);
