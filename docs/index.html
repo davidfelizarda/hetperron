@@ -759,8 +759,20 @@
     }
 
     /***********************
-     * PROMO (eerste slide laden)
+     * PROMO (eerste slide laden)  
      ***********************/
+let promoPreloaded = false;
+
+async function preloadPromoSlides(slides){
+  if (promoPreloaded) return;
+  promoPreloaded = true;
+
+  for (const src of slides){
+    const im = new Image();
+    im.src = `${src}?ts=${Date.now()}`;
+  }
+}
+    
    /***********************
  * PROMO SLIDESHOW
  ***********************/
