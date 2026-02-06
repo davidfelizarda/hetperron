@@ -1,40 +1,608 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="nl">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Perron Screen Test</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Het Perron — Narrowcasting</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Albert+Sans:ital,wght@0,400;0,600;0,700;0,800;0,900;1,400&display=swap" rel="stylesheet">
+
   <style>
-    body { margin: 0; font-family: Arial, sans-serif; }
-    .wrap {
-      height: 100vh; display: flex; flex-direction: column;
-      justify-content: center; align-items: center; gap: 24px;
-      padding: 48px; box-sizing: border-box; text-align: center;
+    :root{
+      --brand-blue:#1242A8;
+      --bg:#ffffff;
+      --card:#ffffff;
+      --border:#E6E6E6;
+      --muted:#6B6B6B;
+      --text:#111111;
+
+      --pill-now:#DDEB00;     /* geelgroen */
+      --pill-next:#F08AD8;    /* roze */
+      --pill-text:#111111;
+
+      --r-xl:34px;
+      --r-lg:22px;
+      --r-md:16px;
+
+      --pad:54px;
     }
-    h1 { font-size: 64px; margin: 0; }
-    .row { font-size: 36px; }
-    .small { font-size: 24px; opacity: 0.8; }
+
+    *{ box-sizing:border-box; }
+    body{
+      margin:0;
+      font-family: "Albert Sans", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:#111; /* buiten het canvas */
+      color:var(--text);
+      overflow:hidden;
+    }
+
+    /* === 9:16 portrait canvas === */
+    .stage{
+      width:1080px;
+      height:1920px;
+      background:var(--bg);
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%,-50%) scale(var(--scale,1));
+      transform-origin:center;
+      overflow:hidden;
+    }
+
+    .screen{
+      width:100%;
+      height:100%;
+      padding: var(--pad);
+      display:none;
+    }
+    .screen.active{ display:block; }
+
+    /* Header */
+    .header{
+      background:var(--brand-blue);
+      border-radius: var(--r-xl);
+      padding:42px;
+      color:#fff;
+
+      display:grid;
+      grid-template-columns: 1fr auto;
+      align-items:end;
+    }
+
+    .header-left{
+      display:flex;
+      flex-direction:column;
+      align-items:flex-start;
+      gap:14px;
+    }
+
+    .logo{
+      height:52px;
+      width:auto;
+      max-width:520px;
+      object-fit:contain;
+      display:block;
+    }
+
+    .title{
+      font-size:84px;
+      line-height:0.95;
+      font-weight:800;
+      margin:0;
+      white-space:nowrap;
+      letter-spacing:-0.02em;
+    }
+
+    .header-right{
+      text-align:right;
+      font-size:30px;
+      line-height:1.15;
+      opacity:.95;
+    }
+    .header-right .date{ font-weight:800; }
+    .header-right .meta{ opacity:.9; }
+
+    /* Grid of rooms */
+    .grid{
+      margin-top:36px;
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:26px;
+    }
+
+    .room-card{
+      background:var(--card);
+      border:2px solid var(--border);
+      border-radius: var(--r-lg);
+      padding:22px;
+      min-height: 0;
+    }
+
+    .room-head{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:10px;
+      margin-bottom:18px;
+    }
+
+    .room-name{
+      font-size:44px;
+      line-height:1.05;
+      font-weight:800;
+      margin:0;
+      letter-spacing:-0.01em;
+    }
+
+    .slot{
+      border:2px solid var(--border);
+      border-radius: var(--r-md);
+      padding:16px 16px 24px 16px;
+      margin-top:14px;
+      min-height: 220px;
+
+      display:flex;
+      flex-direction:column;
+      justify-content:flex-start;
+      gap:10px;
+    }
+
+    .pill{
+      align-self:flex-start;
+      font-weight:900;
+      letter-spacing:1px;
+      font-size:22px;
+      padding:8px 16px;
+      border-radius:999px;
+      color:var(--pill-text);
+      text-transform:uppercase;
+    }
+    .pill.now{ background:var(--pill-now); }
+    .pill.next{ background:var(--pill-next); }
+
+    .time{
+      font-size:52px;
+      line-height:1;
+      font-weight:900;
+      letter-spacing:-0.5px;
+      margin:0;
+    }
+
+    /* Titel: max 3 regels + automatische verkleining */
+    .name{
+      font-size:34px;
+      line-height:1.12;
+      color:#2B2B2B;
+      margin:0;
+      word-break:break-word;
+
+      display:-webkit-box;
+      -webkit-box-orient: vertical;
+      -webkit-line-clamp: 3;
+      overflow:hidden;
+    }
+    .name.small{ font-size:28px; }
+    .name.tiny{ font-size:24px; }
+
+    .slot.empty .pill{ opacity:.28; }
+    .slot.empty .time,
+    .slot.empty .name{ opacity:.22; }
+
+    /* Placeholder screens */
+    .placeholder{
+      margin-top:42px;
+      border:2px dashed #D0D0D0;
+      border-radius:26px;
+      height: 1460px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      color:#8a8a8a;
+      font-size:34px;
+      text-align:center;
+      padding:30px;
+    }
   </style>
 </head>
+
 <body>
-  <div class="wrap">
-    <h1>Het Perron — Screen Test</h1>
-    <div class="row" id="clock">tijd…</div>
-    <div class="row">✅ Als je dit ziet op tv: URL werkt</div>
-    <div class="small">Auto-refresh elke 5 minuten</div>
+  <div class="stage" id="stage">
+
+    <!-- SCREEN 1: ZAALPLANNING -->
+    <section class="screen active" id="screen-planning">
+      <div class="header">
+        <div class="header-left">
+          <img class="logo" src="assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
+          <h1 class="title">Zaalplanning</h1>
+        </div>
+        <div class="header-right">
+          <div class="date" id="todayLabel">—</div>
+          <div class="meta" id="pageLabel">—</div>
+        </div>
+      </div>
+
+      <div class="grid" id="roomsGrid"></div>
+    </section>
+
+    <!-- SCREEN 2: AGENDA (placeholder) -->
+    <section class="screen" id="screen-agenda">
+      <div class="header">
+        <div class="header-left">
+          <img class="logo" src="assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
+          <h1 class="title">Agenda</h1>
+        </div>
+        <div class="header-right">
+          <div class="date" id="todayLabelAgenda">—</div>
+          <div class="meta">Placeholder</div>
+        </div>
+      </div>
+
+      <div class="placeholder">
+        Agenda blijft voorlopig placeholder.<br/>
+        (Later uit Excel/Yesplan/website)
+      </div>
+    </section>
+
+    <!-- SCREEN 3: PROMO (placeholder) -->
+    <section class="screen" id="screen-promo">
+      <div class="header">
+        <div class="header-left">
+          <img class="logo" src="assets/Het Perron-Logo-Liggend-Wit.png" alt="Het Perron" />
+          <h1 class="title">Promo</h1>
+        </div>
+        <div class="header-right">
+          <div class="date" id="todayLabelPromo">—</div>
+          <div class="meta">Placeholder</div>
+        </div>
+      </div>
+
+      <div class="placeholder">
+        Promo blijft voorlopig placeholder.<br/>
+        (Later meerdere full-page ads)
+      </div>
+    </section>
+
   </div>
 
   <script>
-    function tick(){
-      const d = new Date();
-      document.getElementById("clock").textContent =
-        d.toLocaleString("nl-BE", { weekday:"long", year:"numeric", month:"long", day:"numeric", hour:"2-digit", minute:"2-digit" });
-    }
-    tick();
-    setInterval(tick, 1000);
+    /***********************
+     * CONFIG
+     ***********************/
+    const WORKER_URL = "https://hetperron-yesplan-proxy.davidfelizarda.workers.dev/";
 
-    // auto-refresh (handig tegen browser "vastlopers")
-    setTimeout(() => location.reload(), 5 * 60 * 1000);
+    // ✅ OPTIE B: 4 lokalen per scherm
+    const ROOMS_PER_VIEW = 4;
+
+    const REFRESH_MS = 2 * 60 * 1000;     // elke 2 minuten data opnieuw ophalen
+    const ROOMPAGE_MS = 10 * 1000;        // wissel tussen pagina's met zalen (iets sneller omdat er minder tegelijk op staat)
+
+    // Hoofdschermen (laten staan, maar nog geen rotatie zoals gevraagd)
+    const screens = ["screen-planning", "screen-agenda", "screen-promo"];
+    const ENABLE_MAIN_ROTATION = false;   // later pas op true zetten
+
+    const ROOM_ORDER = [
+      "Stadsschouwburg",
+      "Theaterzaal",
+      "Polyvalente zaal",
+      "Vergaderlokaal 1",
+      "Vergaderlokaal 2",
+      "Vergaderlokaal 3",
+      "Vergaderlokaal 4",
+      "Vergaderlokaal A",
+      "Repetitieruimte"
+    ];
+
+    /***********************
+     * FALLBACK (laatste geldige data)
+     ***********************/
+    let lastGoodData = null;
+
+    /***********************
+     * CANVAS SCALE
+     ***********************/
+    function setScaleToFit() {
+      const stage = document.getElementById("stage");
+      const w = 1080, h = 1920;
+      const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
+      stage.style.setProperty("--scale", String(scale));
+    }
+
+    /***********************
+     * DATE FORMAT
+     ***********************/
+    const TZ = "Europe/Brussels";
+    function capitalize(s){ return s ? s[0].toUpperCase() + s.slice(1) : s; }
+
+    function formatTodayLabel(dateObj) {
+      const weekday = dateObj.toLocaleDateString("nl-BE", { weekday: "long", timeZone: TZ });
+      const day = dateObj.toLocaleDateString("nl-BE", { day: "numeric", timeZone: TZ });
+      const month = dateObj.toLocaleDateString("nl-BE", { month: "short", timeZone: TZ });
+      return `${capitalize(weekday)} ${day} ${month}`;
+    }
+
+    function todayISO() {
+      return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
+    }
+
+    /***********************
+     * TIME (Brussels-safe)
+     ***********************/
+    function nowInBrussels() {
+      const s = new Date().toLocaleString("en-US", { timeZone: TZ });
+      return new Date(s);
+    }
+
+    /***********************
+     * TIME PARSING (Brussels-consistent)
+     ***********************/
+    function parseTimeToDate(dateISO, hhmm) {
+      const [y,m,d] = dateISO.split("-").map(Number);
+      const [hh,mm] = String(hhmm).split(":").map(Number);
+
+      const s = `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")} ${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00`;
+      const brusselsStr = new Date(s).toLocaleString("en-US", { timeZone: TZ });
+      return new Date(brusselsStr);
+    }
+
+    function normalizeEnd(startDate, endDate) {
+      if (endDate.getTime() < startDate.getTime()) {
+        const plus = new Date(endDate);
+        plus.setDate(plus.getDate() + 1);
+        return plus;
+      }
+      return endDate;
+    }
+
+    function isNowWithin(start, end, now) {
+      return now >= start && now < end;
+    }
+
+    /***********************
+     * HTML HELPERS
+     ***********************/
+    function escapeHtml(str){
+      return String(str ?? "")
+        .replaceAll("&","&amp;")
+        .replaceAll("<","&lt;")
+        .replaceAll(">","&gt;")
+        .replaceAll('"',"&quot;")
+        .replaceAll("'","&#039;");
+    }
+
+    function buildSlotHTML(type, activity) {
+      const isEmpty = !activity;
+      const pillLabel = (type === "now") ? "Nu" : "Straks";
+
+      return `
+        <div class="slot ${isEmpty ? "empty" : ""}">
+          <div class="pill ${type}">${pillLabel}</div>
+          <p class="time">${isEmpty ? "—" : `${escapeHtml(activity.startLabel)}–${escapeHtml(activity.endLabel)}`}</p>
+          <p class="name">${isEmpty ? " " : escapeHtml(activity.name)}</p>
+        </div>
+      `;
+    }
+
+    /***********************
+     * YESPLAN DATA FETCH (via Worker)
+     * + fallback op laatste geldige data
+     ***********************/
+    async function fetchYesplan() {
+      try {
+        const res = await fetch(WORKER_URL, { cache: "no-store" });
+        if (!res.ok) {
+          const txt = await res.text().catch(()=> "");
+          throw new Error(`Worker error ${res.status}: ${txt}`);
+        }
+        const data = await res.json();
+        if (!Array.isArray(data)) throw new Error("Worker returned non-array JSON.");
+
+        lastGoodData = data;
+        return data;
+      } catch (err) {
+        console.error("fetchYesplan failed:", err);
+
+        if (lastGoodData) return lastGoodData;
+        return [];
+      }
+    }
+
+    /***********************
+     * ROOM MAPPING
+     ***********************/
+    function mapToCanonicalRoom(locName) {
+      const n = String(locName || "").toLowerCase();
+
+      if (n === "stadsschouwburg") return "Stadsschouwburg";
+      if (n === "theaterzaal") return "Theaterzaal";
+      if (n === "polyvalente zaal") return "Polyvalente zaal";
+
+      if (n === "vergaderlokaal 1") return "Vergaderlokaal 1";
+      if (n === "vergaderlokaal 2") return "Vergaderlokaal 2";
+      if (n === "vergaderlokaal 3") return "Vergaderlokaal 3";
+      if (n === "vergaderlokaal 4") return "Vergaderlokaal 4";
+      if (n === "vergaderlokaal a") return "Vergaderlokaal A";
+
+      // Repetitieruimte A/B/... samenvoegen
+      if (n.startsWith("repetitieruimte")) return "Repetitieruimte";
+
+      return null;
+    }
+
+    /***********************
+     * COMPUTE NU / STRAKS PER ZAAL
+     ***********************/
+    function computeRoomPlan(items, dateISO) {
+      const now = nowInBrussels();
+
+      const byRoom = new Map();
+      for (const item of items) {
+        const loc = item?.Locatie?.name;
+        const room = mapToCanonicalRoom(loc);
+        if (!room) continue;
+
+        const itemDate = item?.Datum || dateISO;
+        if (itemDate !== dateISO) continue;
+
+        const name = item?.Naam || "";
+        const startLabel = item?.["Getoonde starttijd"];
+        const endLabel = item?.["Getoonde eindtijd"];
+        if (!startLabel || !endLabel) continue;
+
+        const start = parseTimeToDate(itemDate, startLabel);
+        let end = parseTimeToDate(itemDate, endLabel);
+        end = normalizeEnd(start, end);
+
+        if (!byRoom.has(room)) byRoom.set(room, []);
+        byRoom.get(room).push({ name, start, end, startLabel, endLabel });
+      }
+
+      for (const [room, arr] of byRoom.entries()) {
+        arr.sort((a,b)=> a.start - b.start);
+        byRoom.set(room, arr);
+      }
+
+      return ROOM_ORDER.map(roomName => {
+        const arr = byRoom.get(roomName) || [];
+        const current = arr.find(a => isNowWithin(a.start, a.end, now)) || null;
+        const next = arr.find(a => a.start > now) || null;
+        return { roomName, current, next };
+      });
+    }
+
+    /***********************
+     * RENDER (4 per page + auto rotate)
+     ***********************/
+    let roomsAll = [];
+    let roomPageIndex = 0;
+    let roomPageTimer = null;
+
+    function applyNameSizing(container){
+      container.querySelectorAll(".name").forEach(el => {
+        const len = el.textContent.trim().length;
+
+        el.classList.remove("small","tiny");
+        if (len > 70) el.classList.add("small");
+        if (len > 95) {
+          el.classList.remove("small");
+          el.classList.add("tiny");
+        }
+      });
+    }
+
+    function renderRoomPage() {
+      const grid = document.getElementById("roomsGrid");
+      const pageLabel = document.getElementById("pageLabel");
+
+      const totalRooms = roomsAll.length;
+      const totalPages = Math.max(1, Math.ceil(totalRooms / ROOMS_PER_VIEW));
+
+      if (roomPageIndex >= totalPages) roomPageIndex = 0;
+
+      const start = roomPageIndex * ROOMS_PER_VIEW;
+      const slice = roomsAll.slice(start, start + ROOMS_PER_VIEW);
+
+      grid.innerHTML = slice.map(r => {
+        const nowAct = r.current ? { startLabel: r.current.startLabel, endLabel: r.current.endLabel, name: r.current.name } : null;
+        const nextAct = r.next ? { startLabel: r.next.startLabel, endLabel: r.next.endLabel, name: r.next.name } : null;
+
+        return `
+          <article class="room-card">
+            <div class="room-head">
+              <h2 class="room-name">${escapeHtml(r.roomName)}</h2>
+            </div>
+            ${buildSlotHTML("now", nowAct)}
+            ${buildSlotHTML("next", nextAct)}
+          </article>
+        `;
+      }).join("");
+
+      applyNameSizing(grid);
+
+      pageLabel.textContent = (totalPages > 1)
+        ? `Pagina ${roomPageIndex + 1}/${totalPages}`
+        : `Pagina`;
+    }
+
+    function startRoomPagination() {
+      if (roomPageTimer) clearInterval(roomPageTimer);
+
+      const totalPages = Math.ceil(roomsAll.length / ROOMS_PER_VIEW);
+      if (totalPages <= 1) return;
+
+      roomPageTimer = setInterval(() => {
+        roomPageIndex = (roomPageIndex + 1) % totalPages;
+        renderRoomPage();
+      }, ROOMPAGE_MS);
+    }
+
+    /***********************
+     * MAIN REFRESH LOOP
+     ***********************/
+    async function refreshPlanning() {
+      const today = nowInBrussels();
+      document.getElementById("todayLabel").textContent = formatTodayLabel(today);
+      document.getElementById("todayLabelAgenda").textContent = formatTodayLabel(today);
+      document.getElementById("todayLabelPromo").textContent = formatTodayLabel(today);
+
+      const dateISO = todayISO();
+
+      const items = await fetchYesplan();
+      roomsAll = computeRoomPlan(items, dateISO);
+
+      roomPageIndex = 0;
+      renderRoomPage();
+      startRoomPagination();
+
+      if ((!items || items.length === 0) && !lastGoodData) {
+        roomsAll = ROOM_ORDER.map(roomName => ({ roomName, current:null, next:null }));
+        roomPageIndex = 0;
+        renderRoomPage();
+        startRoomPagination();
+        document.getElementById("pageLabel").textContent = "Planning (geen data)";
+      }
+    }
+
+    /***********************
+     * OPTIONAL: MAIN SCREEN ROTATION (later)
+     ***********************/
+    function setActiveScreen(id){
+      screens.forEach(s => document.getElementById(s).classList.toggle("active", s === id));
+    }
+
+    function initMainRotation(){
+      if (!ENABLE_MAIN_ROTATION) return;
+      let idx = 0;
+      setInterval(() => {
+        idx = (idx + 1) % screens.length;
+        setActiveScreen(screens[idx]);
+      }, 15000);
+    }
+
+    // init
+    setScaleToFit();
+    window.addEventListener("resize", setScaleToFit);
+
+    /***********************
+     * NIGHTLY HARD REFRESH
+     ***********************/
+    function scheduleNightReload() {
+      const now = new Date();
+      const reload = new Date();
+
+      reload.setHours(4, 0, 0, 0);
+      if (reload <= now) reload.setDate(reload.getDate() + 1);
+
+      const timeout = reload.getTime() - now.getTime();
+      setTimeout(() => location.reload(true), timeout);
+    }
+
+    scheduleNightReload();
+
+    refreshPlanning();
+    setInterval(refreshPlanning, REFRESH_MS);
+    initMainRotation();
   </script>
 </body>
 </html>
