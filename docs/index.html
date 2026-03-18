@@ -392,9 +392,13 @@
     function setScaleToFit() {
       const stage = document.getElementById("stage");
       const W = 1080, H = 1920;
-      const scale = (window.innerWidth >= W && window.innerHeight >= H)
-        ? 1
-        : Math.min(window.innerWidth / W, window.innerHeight / H);
+
+      if (window.innerWidth >= W && window.innerHeight >= H) {
+        stage.style.setProperty("--scale", "1");
+        return;
+      }
+
+      const scale = Math.min(window.innerWidth / W, window.innerHeight / H);
       stage.style.setProperty("--scale", String(scale));
     }
 
