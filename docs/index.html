@@ -28,7 +28,7 @@
 
       --pad:48px;
 
-      --row-alt:#F3F4F6; /* lichtgrijs voor afwisseling */
+      --row-alt:#F3F4F6;
     }
 
     *{ box-sizing:border-box; }
@@ -44,7 +44,7 @@
       width:1080px;
       height:1920px;
       background:var(--bg);
-      position:absolute;
+      <!-- position:absolute; -->
       left:50%;
       top:50%;
       transform:translate(-50%,-50%) scale(var(--scale,1));
@@ -103,7 +103,6 @@
     .header-right .date{ font-weight:800; }
     .header-right .meta{ opacity:.9; }
 
-    /* ===== PLANNING ===== */
     .grid{
       margin-top:26px;
       display:grid;
@@ -179,7 +178,6 @@
       color:#2B2B2B;
       margin:0;
       word-break:break-word;
-
       display:-webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 3;
@@ -192,7 +190,6 @@
     .slot.empty .time,
     .slot.empty .name{ opacity:.22; }
 
-    /* ===== AGENDA ===== */
     .agenda-wrap{
       margin-top:26px;
       height: 1500px;
@@ -241,7 +238,6 @@
       font-weight:900;
       line-height:1.08;
       margin:0;
-
       display:-webkit-box;
       -webkit-box-orient: vertical;
       -webkit-line-clamp: 2;
@@ -256,7 +252,6 @@
       text-transform:uppercase;
       color: var(--brand-blue);
       opacity: .95;
-
       display:flex;
       flex-wrap:wrap;
       gap:14px;
@@ -286,7 +281,6 @@
       text-align:center;
     }
 
-    /* ===== PROMO FULLSCREEN ===== */
     #screen-promo{
       padding:0 !important;
       background:#000;
@@ -306,7 +300,6 @@
 <body>
   <div class="stage" id="stage">
 
-    <!-- SCREEN 1: ZAALPLANNING -->
     <section class="screen active" id="screen-planning">
       <div class="header">
         <div class="header-left">
@@ -315,14 +308,12 @@
         </div>
         <div class="header-right">
           <div class="date" id="todayLabel">—</div>
-          <div class="meta" id="pageLabel">—</div>
+          <div class="meta" id="pageLabel"></div>
         </div>
       </div>
-
       <div class="grid" id="roomsGrid"></div>
     </section>
 
-    <!-- SCREEN 2: AGENDA -->
     <section class="screen" id="screen-agenda">
       <div class="header">
         <div class="header-left">
@@ -333,13 +324,11 @@
           <div class="date" id="todayLabelAgenda">—</div>
         </div>
       </div>
-
       <div class="agenda-wrap">
         <div class="agenda-list" id="agendaList"></div>
       </div>
     </section>
 
-    <!-- SCREEN 3: PROMO -->
     <section class="screen" id="screen-promo">
       <img id="promoImg" alt="" />
     </section>
@@ -347,20 +336,24 @@
   </div>
 
   <script>
-    /***********************
-     * CONFIG
-     ***********************/
-    const WORKER_BASE = "https://hetperron-yesplan-proxy.davidfelizarda.workers.dev/";
+    // ─── CONFIG ────────────────────────────────────────────────────────────────
+    // Alle instellingen op één plek zodat je nooit diep in de code hoeft te zoeken.
+
+    const WORKER_BASE       = "https://hetperron-yesplan-proxy.davidfelizarda.workers.dev/";
     const ENDPOINT_PLANNING = WORKER_BASE + "planning";
     const ENDPOINT_AGENDA   = WORKER_BASE + "agenda";
 
-    const ROOMS_PER_VIEW = 6;
-    const REFRESH_MS = 2 * 60 * 1000;
-    const ROOMPAGE_MS = 12 * 1000;
+    const ROOMS_PER_VIEW   = 6;
+    const REFRESH_MS       = 2 * 60 * 1000;  // data hertrekken
+    const ROOMPAGE_MS      = 12 * 1000;       // zaalrotatie
+    const MAINSCREEN_MS    = 20 * 1000;       // schermrotatie
+    const PROMO_SLIDE_MS   = 10 * 1000;       // duur per promo-slide
+    const FETCH_TIMEOUT_MS = 8 * 1000;        // max wachttijd op server
+    const NIGHT_RELOAD_H   = 4;               // uur voor nachtelijke reload
+
+    const ENABLE_MAIN_ROTATION = true;
 
     const screens = ["screen-planning", "screen-agenda", "screen-promo"];
-    const ENABLE_MAIN_ROTATION = true;
-    const MAINSCREEN_MS = 20000;
 
     const ROOM_ORDER = [
       "Stadsschouwburg",
@@ -371,92 +364,99 @@
       "Vergaderlokaal 3",
       "Vergaderlokaal 4",
       "Vergaderlokaal A",
-      "Repetitieruimte"
+      "Repetitieruimte",
     ];
 
-    // Agenda filters
-    const AGENDA_PROFILES = new Set(["E_Podium", "E_educatief"]);
+    const AGENDA_PROFILES   = new Set(["E_Podium", "E_educatief"]);
     const HIDE_SCHOOL_LABEL = "schoolvoorstelling";
-    const GENRES = ["muziek","theater","klassiek","familie","film","vorming","humor"];
+    const GENRES            = ["muziek","theater","klassiek","familie","film","vorming","humor"];
+    const TZ                = "Europe/Brussels";
+
+    // ─── STATE ─────────────────────────────────────────────────────────────────
 
     let lastGoodPlanning = null;
-    let lastGoodAgenda = null;
+    let lastGoodAgenda   = null;
 
-    const TZ = "Europe/Brussels";
+    let roomsAll      = [];
+    let roomPageIndex = 0;
+    let roomPageTimer = null;
 
-    /***********************
-     * CANVAS SCALE
-     ***********************/
+    let promoSlides          = [];
+    let promoIndex           = 0;
+    let promoTimer           = null;
+    let promoRunning         = false;
+    let promoPrefetchPromise = null;
+
+    // ─── SCHAAL ────────────────────────────────────────────────────────────────
+
     function setScaleToFit() {
       const stage = document.getElementById("stage");
-      const w = 1080, h = 1920;
-
-      // TV/fullscreen: geen scaling -> pixel perfect
-      if (window.innerWidth >= w && window.innerHeight >= h) {
-        stage.style.setProperty("--scale", "1");
-        return;
-      }
-
-      // laptop preview
-      const scale = Math.min(window.innerWidth / w, window.innerHeight / h);
+      const W = 1080, H = 1920;
+      const scale = (window.innerWidth >= W && window.innerHeight >= H)
+        ? 1
+        : Math.min(window.innerWidth / W, window.innerHeight / H);
       stage.style.setProperty("--scale", String(scale));
     }
+
+    // ─── DATUM / TIJD ──────────────────────────────────────────────────────────
 
     function capitalize(s){ return s ? s[0].toUpperCase() + s.slice(1) : s; }
 
     function nowInBrussels() {
-      const s = new Date().toLocaleString("en-US", { timeZone: TZ });
-      return new Date(s);
+      return new Date(new Date().toLocaleString("en-US", { timeZone: TZ }));
     }
 
     function todayISO() {
       return new Date().toLocaleDateString("en-CA", { timeZone: TZ });
     }
 
-    function addDaysISO(dateISO, days){
-      const [y,m,d] = dateISO.split("-").map(Number);
-      const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0));
+    function addDaysISO(dateISO, days) {
+      const [y, m, d] = dateISO.split("-").map(Number);
+      const dt = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
       dt.setUTCDate(dt.getUTCDate() + days);
-      const yy = dt.getUTCFullYear();
-      const mm = String(dt.getUTCMonth()+1).padStart(2,"0");
-      const dd = String(dt.getUTCDate()).padStart(2,"0");
-      return `${yy}-${mm}-${dd}`;
+      return [
+        dt.getUTCFullYear(),
+        String(dt.getUTCMonth() + 1).padStart(2, "0"),
+        String(dt.getUTCDate()).padStart(2, "0"),
+      ].join("-");
     }
 
     function formatTodayLabel(dateObj) {
-      const weekday = dateObj.toLocaleDateString("nl-BE", { weekday: "long", timeZone: TZ });
-      const day = dateObj.toLocaleDateString("nl-BE", { day: "numeric", timeZone: TZ });
-      const month = dateObj.toLocaleDateString("nl-BE", { month: "short", timeZone: TZ });
+      const opts    = { timeZone: TZ };
+      const weekday = dateObj.toLocaleDateString("nl-BE", { ...opts, weekday: "long" });
+      const day     = dateObj.toLocaleDateString("nl-BE", { ...opts, day: "numeric" });
+      const month   = dateObj.toLocaleDateString("nl-BE", { ...opts, month: "short" });
       return `${capitalize(weekday)} ${day} ${month}`;
     }
 
-    function formatDateShortNL(dateISO){
-      const [y,m,d] = dateISO.split("-").map(Number);
-      const dt = new Date(Date.UTC(y, m-1, d, 12, 0, 0));
-      const w = dt.toLocaleDateString("nl-BE", { weekday:"short" });
-      const day = dt.toLocaleDateString("nl-BE", { day:"numeric" });
-      const mon = dt.toLocaleDateString("nl-BE", { month:"short" });
+    function formatDateShortNL(dateISO) {
+      // Gebruik UTC+12 noon om zomer-/wintertijdproblemen volledig te vermijden
+      const [y, m, d] = dateISO.split("-").map(Number);
+      const dt   = new Date(Date.UTC(y, m - 1, d, 12, 0, 0));
+      const opts = { timeZone: "UTC" };
+      const w    = dt.toLocaleDateString("nl-BE", { ...opts, weekday: "short" });
+      const day  = dt.toLocaleDateString("nl-BE", { ...opts, day: "numeric" });
+      const mon  = dt.toLocaleDateString("nl-BE", { ...opts, month: "short" });
       return `${w} ${day} ${mon}`;
     }
 
-    function escapeHtml(str){
+    function escapeHtml(str) {
       return String(str ?? "")
-        .replaceAll("&","&amp;")
-        .replaceAll("<","&lt;")
-        .replaceAll(">","&gt;")
-        .replaceAll('"',"&quot;")
-        .replaceAll("'","&#039;");
+        .replaceAll("&",  "&amp;")
+        .replaceAll("<",  "&lt;")
+        .replaceAll(">",  "&gt;")
+        .replaceAll('"',  "&quot;")
+        .replaceAll("'",  "&#039;");
     }
 
-    /***********************
-     * TIME PARSING (planning)
-     ***********************/
+    // ─── TIJDPARSING ───────────────────────────────────────────────────────────
+
     function parseTimeToDate(dateISO, hhmm) {
-      const [y,m,d] = dateISO.split("-").map(Number);
-      const [hh,mm] = String(hhmm).split(":").map(Number);
-      const s = `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")} ${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00`;
-      const brusselsStr = new Date(s).toLocaleString("en-US", { timeZone: TZ });
-      return new Date(brusselsStr);
+      const [y, m, d] = dateISO.split("-").map(Number);
+      const [hh, mm]  = String(hhmm).split(":").map(Number);
+      const s = `${y}-${String(m).padStart(2,"0")}-${String(d).padStart(2,"0")} `
+              + `${String(hh).padStart(2,"0")}:${String(mm).padStart(2,"0")}:00`;
+      return new Date(new Date(s).toLocaleString("en-US", { timeZone: TZ }));
     }
 
     function normalizeEnd(startDate, endDate) {
@@ -472,277 +472,141 @@
       return now >= start && now < end;
     }
 
-    /***********************
-     * HTML HELPERS
-     ***********************/
-    function buildSlotHTML(type, activity) {
-      const isEmpty = !activity;
-      const pillLabel = (type === "now") ? "Nu" : "Straks";
+    // ─── FETCH MET TIMEOUT EN FALLBACK ─────────────────────────────────────────
+    // FIX: AbortController met timeout voorkomt dat de app oneindig wacht
+    // bij een trage of onbereikbare server. Bij elke fout valt de functie
+    // terug op de laatste succesvolle data (lastGoodPlanning / lastGoodAgenda).
 
-      return `
-        <div class="slot ${isEmpty ? "empty" : ""}">
-          <div class="pill ${type}">${pillLabel}</div>
-          <p class="time">${isEmpty ? "—" : `${escapeHtml(activity.startLabel)}–${escapeHtml(activity.endLabel)}`}</p>
-          <p class="name">${isEmpty ? " " : escapeHtml(activity.name)}</p>
-        </div>
-      `;
-    }
+    async function fetchArray(url, setLastGood, getLastGood) {
+      const controller = new AbortController();
+      const timeoutId  = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
 
-    /***********************
-     * YESPLAN DATA FETCH
-     ***********************/
-    async function fetchArray(url, setLastGood, getLastGood){
-      try{
-        const res = await fetch(url, { cache:"no-store" });
-        if(!res.ok){
-          const txt = await res.text().catch(()=> "");
+      try {
+        const res = await fetch(url, { cache: "no-store", signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (!res.ok) {
+          const txt = await res.text().catch(() => "");
           throw new Error(`HTTP ${res.status}: ${txt}`);
         }
+
         const data = await res.json();
-        if(!Array.isArray(data)) throw new Error("Non-array JSON");
+        if (!Array.isArray(data)) throw new Error("Non-array JSON");
+
         setLastGood(data);
         return data;
-      }catch(e){
-        console.error("fetch failed:", url, e);
+
+      } catch (e) {
+        clearTimeout(timeoutId);
+        // "AbortError" = timeout verstreken; andere fouten = netwerk/server
+        console.warn("fetch failed:", url, e.message ?? e);
         const fallback = getLastGood();
-        return fallback ? fallback : [];
+        return fallback ?? [];
       }
     }
 
-    /***********************
-     * ROOM MAPPING
-     ***********************/
+    // ─── ZAALPLANNING ──────────────────────────────────────────────────────────
+
     function mapToCanonicalRoom(locName) {
       const n = String(locName || "").toLowerCase();
-
-      if (n === "stadsschouwburg") return "Stadsschouwburg";
-      if (n === "theaterzaal") return "Theaterzaal";
-      if (n === "polyvalente zaal") return "Polyvalente zaal";
-
-      if (n === "vergaderlokaal 1") return "Vergaderlokaal 1";
-      if (n === "vergaderlokaal 2") return "Vergaderlokaal 2";
-      if (n === "vergaderlokaal 3") return "Vergaderlokaal 3";
-      if (n === "vergaderlokaal 4") return "Vergaderlokaal 4";
-      if (n === "vergaderlokaal a") return "Vergaderlokaal A";
-
+      if (n === "stadsschouwburg")         return "Stadsschouwburg";
+      if (n === "theaterzaal")             return "Theaterzaal";
+      if (n === "polyvalente zaal")        return "Polyvalente zaal";
+      if (n === "vergaderlokaal 1")        return "Vergaderlokaal 1";
+      if (n === "vergaderlokaal 2")        return "Vergaderlokaal 2";
+      if (n === "vergaderlokaal 3")        return "Vergaderlokaal 3";
+      if (n === "vergaderlokaal 4")        return "Vergaderlokaal 4";
+      if (n === "vergaderlokaal a")        return "Vergaderlokaal A";
       if (n.startsWith("repetitieruimte")) return "Repetitieruimte";
-
       return null;
     }
 
-    /***********************
-     * COMPUTE NU / STRAKS PER ZAAL
-     ***********************/
     function computeRoomPlan(items, dateISO) {
-      const now = nowInBrussels();
-
+      const now    = nowInBrussels();
       const byRoom = new Map();
+
       for (const item of items) {
-        const loc = item?.Locatie?.name;
-        const room = mapToCanonicalRoom(loc);
+        const room = mapToCanonicalRoom(item?.Locatie?.name);
         if (!room) continue;
+        if ((item?.Datum || dateISO) !== dateISO) continue;
 
-        const itemDate = item?.Datum || dateISO;
-        if (itemDate !== dateISO) continue;
-
-        const name = item?.Naam || "";
+        const name       = item?.Naam || "";
         const startLabel = item?.["Getoonde starttijd"];
-        const endLabel = item?.["Getoonde eindtijd"];
+        const endLabel   = item?.["Getoonde eindtijd"];
         if (!startLabel || !endLabel) continue;
 
         const start = parseTimeToDate(dateISO, startLabel);
-        let end = parseTimeToDate(dateISO, endLabel);
-        end = normalizeEnd(start, end);
+        const end   = normalizeEnd(start, parseTimeToDate(dateISO, endLabel));
 
         if (!byRoom.has(room)) byRoom.set(room, []);
         byRoom.get(room).push({ name, start, end, startLabel, endLabel });
       }
 
-      for (const [room, arr] of byRoom.entries()) arr.sort((a,b)=> a.start - b.start);
+      for (const arr of byRoom.values()) arr.sort((a, b) => a.start - b.start);
 
       return ROOM_ORDER.map(roomName => {
-        const arr = byRoom.get(roomName) || [];
+        const arr     = byRoom.get(roomName) || [];
         const current = arr.find(a => isNowWithin(a.start, a.end, now)) || null;
-        const next = arr.find(a => a.start > now) || null;
+        const next    = arr.find(a => a.start > now) || null;
         return { roomName, current, next };
       });
     }
 
-    /***********************
-     * PLANNING: slimme titel sizing
-     ***********************/
-    function applyNameSizingAndLongCards(container){
+    function buildSlotHTML(type, activity) {
+      const isEmpty   = !activity;
+      const pillLabel = type === "now" ? "Nu" : "Straks";
+      return `
+        <div class="slot ${isEmpty ? "empty" : ""}">
+          <div class="pill ${type}">${pillLabel}</div>
+          <p class="time">${isEmpty ? "—" : `${escapeHtml(activity.startLabel)}–${escapeHtml(activity.endLabel)}`}</p>
+          <p class="name">${isEmpty ? " " : escapeHtml(activity.name)}</p>
+        </div>`;
+    }
+
+    function applyNameSizingAndLongCards(container) {
       container.querySelectorAll(".room-card").forEach(card => card.classList.remove("long"));
       container.querySelectorAll(".name").forEach(el => {
-        const txt = el.textContent.trim();
-        const len = txt.length;
+        const len  = el.textContent.trim().length;
         const card = el.closest(".room-card");
-
-        el.classList.remove("small","tiny");
+        el.classList.remove("small", "tiny");
         if (len > 70) el.classList.add("small");
         if (len > 95) { el.classList.remove("small"); el.classList.add("tiny"); }
-
         if (card && len > 85) card.classList.add("long");
       });
     }
 
-    /***********************
-     * AGENDA helpers
-     ***********************/
-    function labelsToLowerNames(labels){
-      if (!Array.isArray(labels)) return [];
-      return labels
-        .map(l => (l && typeof l.name === "string") ? l.name.trim() : "")
-        .filter(Boolean)
-        .map(s => s.toLowerCase());
-    }
-
-    function hasSchoolvoorstelling(labels){
-      return labelsToLowerNames(labels).includes(HIDE_SCHOOL_LABEL);
-    }
-
-    function pickGenres(labels){
-      const names = labelsToLowerNames(labels);
-      const found = [];
-      for (const g of GENRES){
-        if (names.includes(g)) found.push(g);
-      }
-      return found.slice(0, 2);
-    }
-
-    function pickStartTime(item){
-      const t = item?.["Tijdschema’s"]?.["Voorstelling"];
-      if (Array.isArray(t) && t.length && t[0]?.start) return String(t[0].start);
-      if (typeof item?.["Getoonde starttijd"] === "string") return item["Getoonde starttijd"];
-      return "";
-    }
-
-    function agendaFilterAndSort(items){
-      const startISO = todayISO();
-      const endISO = addDaysISO(startISO, 28);
-
-      const filtered = items
-        .filter(it => {
-          const prof = it?.Profiel?.name || "";
-          if (!AGENDA_PROFILES.has(String(prof))) return false;
-
-          const dateISO = it?.Datum;
-          if (!dateISO || typeof dateISO !== "string") return false;
-          if (dateISO < startISO || dateISO > endISO) return false;
-
-          if (hasSchoolvoorstelling(it?.Labels)) return false;
-
-          const name = it?.Naam;
-          if (!name) return false;
-
-          const startT = pickStartTime(it);
-          if (!startT) return false;
-
-          return true;
-        })
-        .map(it => {
-          const dateISO = it.Datum;
-          const startT = pickStartTime(it);
-          const genres = pickGenres(it.Labels);
-          const zaal = it?.Locatie?.name ? String(it.Locatie.name) : "";
-
-          return {
-            dateISO,
-            dateLabel: formatDateShortNL(dateISO),
-            startTime: startT,
-            name: String(it.Naam || ""),
-            genres,
-            zaal
-          };
-        });
-
-      filtered.sort((a,b) => {
-        if (a.dateISO !== b.dateISO) return a.dateISO.localeCompare(b.dateISO);
-        return a.startTime.localeCompare(b.startTime);
-      });
-
-      return filtered;
-    }
-
-    function renderAgenda(items){
-      const list = document.getElementById("agendaList");
-      const filtered = agendaFilterAndSort(items);
-
-      if (!filtered.length){
-        list.innerHTML = `<div class="agenda-empty">Geen voorstellingen in de komende 4 weken.</div>`;
-        return;
-      }
-
-      const MAX = 16;
-      const slice = filtered.slice(0, MAX);
-
-      list.innerHTML = slice.map((row, i) => {
-        const isAlt = (i % 2 === 1);
-
-        const tags = [];
-        if (row.genres.length) tags.push(...row.genres.map(g => g.toUpperCase()));
-        if (row.zaal) tags.push(row.zaal.toUpperCase());
-
-        const tagsHtml = tags.length
-          ? `<div class="agenda-meta">${tags.map(t => `<span class="agenda-tag">${escapeHtml(t)}</span>`).join("")}</div>`
-          : ``;
-
-        return `
-          <div class="agenda-row ${isAlt ? "alt" : ""}">
-            <p class="agenda-date">${escapeHtml(row.dateLabel)}</p>
-            <p class="agenda-time">${escapeHtml(row.startTime)}</p>
-            <div>
-              <p class="agenda-title">${escapeHtml(row.name)}</p>
-              ${tagsHtml}
-            </div>
-          </div>
-        `;
-      }).join("");
-    }
-
-    /***********************
-     * RENDER PLANNING (6 per page + auto rotate)
-     ***********************/
-    let roomsAll = [];
-    let roomPageIndex = 0;
-    let roomPageTimer = null;
-
     function renderRoomPage() {
-      const grid = document.getElementById("roomsGrid");
-      const pageLabel = document.getElementById("pageLabel");
-
-      const totalRooms = roomsAll.length;
-      const totalPages = Math.max(1, Math.ceil(totalRooms / ROOMS_PER_VIEW));
+      const grid       = document.getElementById("roomsGrid");
+      const pageLabel  = document.getElementById("pageLabel");
+      const totalPages = Math.max(1, Math.ceil(roomsAll.length / ROOMS_PER_VIEW));
 
       if (roomPageIndex >= totalPages) roomPageIndex = 0;
 
-      const start = roomPageIndex * ROOMS_PER_VIEW;
-      const slice = roomsAll.slice(start, start + ROOMS_PER_VIEW);
+      const slice = roomsAll.slice(
+        roomPageIndex * ROOMS_PER_VIEW,
+        roomPageIndex * ROOMS_PER_VIEW + ROOMS_PER_VIEW
+      );
 
-      grid.innerHTML = slice.map(r => {
-        const nowAct = r.current ? { startLabel: r.current.startLabel, endLabel: r.current.endLabel, name: r.current.name } : null;
-        const nextAct = r.next ? { startLabel: r.next.startLabel, endLabel: r.next.endLabel, name: r.next.name } : null;
-
-        return `
-          <article class="room-card">
-            <div class="room-head">
-              <h2 class="room-name">${escapeHtml(r.roomName)}</h2>
-            </div>
-            ${buildSlotHTML("now", nowAct)}
-            ${buildSlotHTML("next", nextAct)}
-          </article>
-        `;
-      }).join("");
+      grid.innerHTML = slice.map(r => `
+        <article class="room-card">
+          <div class="room-head">
+            <h2 class="room-name">${escapeHtml(r.roomName)}</h2>
+          </div>
+          ${buildSlotHTML("now",  r.current ? { startLabel: r.current.startLabel, endLabel: r.current.endLabel, name: r.current.name } : null)}
+          ${buildSlotHTML("next", r.next    ? { startLabel: r.next.startLabel,    endLabel: r.next.endLabel,    name: r.next.name    } : null)}
+        </article>`
+      ).join("");
 
       applyNameSizingAndLongCards(grid);
 
-      pageLabel.textContent = (totalPages > 1)
-        ? `Pagina ${roomPageIndex + 1}/${totalPages}`
-        : `Pagina`;
+      // Toon paginanummer alleen als er meerdere pagina's zijn
+      pageLabel.textContent = totalPages > 1 ? `Pagina ${roomPageIndex + 1}/${totalPages}` : "";
     }
 
     function startRoomPagination() {
-      if (roomPageTimer) clearInterval(roomPageTimer);
+      // FIX: stop altijd de vorige timer zodat er geen dubbele intervals opstapelen
+      // bij elke 2-minuten refresh
+      if (roomPageTimer) { clearInterval(roomPageTimer); roomPageTimer = null; }
 
       const totalPages = Math.ceil(roomsAll.length / ROOMS_PER_VIEW);
       if (totalPages <= 1) return;
@@ -753,175 +617,252 @@
       }, ROOMPAGE_MS);
     }
 
-    /***********************
-     * PROMO SLIDESHOW + PRELOAD (harde cut)
-     ***********************/
-    const PROMO_SLIDE_MS = 10000; // 10s per afbeelding
+    // ─── AGENDA ────────────────────────────────────────────────────────────────
 
-    let promoSlides = [];
-    let promoIndex = 0;
-    let promoTimer = null;
-    let promoRunning = false;
+    function labelsToLowerNames(labels) {
+      if (!Array.isArray(labels)) return [];
+      return labels
+        .map(l => (l && typeof l.name === "string") ? l.name.trim().toLowerCase() : "")
+        .filter(Boolean);
+    }
 
-    // preload state
-    let promoPreloaded = false;
-    let promoPrefetchPromise = null;
+    function hasSchoolvoorstelling(labels) {
+      return labelsToLowerNames(labels).includes(HIDE_SCHOOL_LABEL);
+    }
 
-    async function loadPromoSlides(){
-      try{
-        const res = await fetch(`promo/promo.json?ts=${Date.now()}`, { cache:"no-store" });
-        if(!res.ok) return [];
+    function pickGenres(labels) {
+      const names = labelsToLowerNames(labels);
+      return GENRES.filter(g => names.includes(g)).slice(0, 2);
+    }
+
+    function pickStartTime(item) {
+      const t = item?.["Tijdschema's"]?.["Voorstelling"];
+      if (Array.isArray(t) && t.length && t[0]?.start) return String(t[0].start);
+      if (typeof item?.["Getoonde starttijd"] === "string") return item["Getoonde starttijd"];
+      return "";
+    }
+
+    function agendaFilterAndSort(items) {
+      const startISO = todayISO();
+      const endISO   = addDaysISO(startISO, 28);
+
+      return items
+        .filter(it => {
+          const prof    = it?.Profiel?.name || "";
+          const dateISO = it?.Datum;
+          return AGENDA_PROFILES.has(String(prof))
+            && dateISO && typeof dateISO === "string"
+            && dateISO >= startISO && dateISO <= endISO
+            && !hasSchoolvoorstelling(it?.Labels)
+            && it?.Naam
+            && pickStartTime(it);
+        })
+        .map(it => ({
+          dateISO:   it.Datum,
+          dateLabel: formatDateShortNL(it.Datum),
+          startTime: pickStartTime(it),
+          name:      String(it.Naam || ""),
+          genres:    pickGenres(it.Labels),
+          zaal:      it?.Locatie?.name ? String(it.Locatie.name) : "",
+        }))
+        .sort((a, b) =>
+          a.dateISO !== b.dateISO
+            ? a.dateISO.localeCompare(b.dateISO)
+            : a.startTime.localeCompare(b.startTime)
+        );
+    }
+
+    function renderAgenda(items) {
+      const list     = document.getElementById("agendaList");
+      const filtered = agendaFilterAndSort(items);
+
+      if (!filtered.length) {
+        list.innerHTML = `<div class="agenda-empty">Geen voorstellingen in de komende 4 weken.</div>`;
+        return;
+      }
+
+      list.innerHTML = filtered.slice(0, 16).map((row, i) => {
+        const tags = [
+          ...row.genres.map(g => g.toUpperCase()),
+          ...(row.zaal ? [row.zaal.toUpperCase()] : []),
+        ];
+        const tagsHtml = tags.length
+          ? `<div class="agenda-meta">${tags.map(t => `<span class="agenda-tag">${escapeHtml(t)}</span>`).join("")}</div>`
+          : "";
+        return `
+          <div class="agenda-row ${i % 2 === 1 ? "alt" : ""}">
+            <p class="agenda-date">${escapeHtml(row.dateLabel)}</p>
+            <p class="agenda-time">${escapeHtml(row.startTime)}</p>
+            <div>
+              <p class="agenda-title">${escapeHtml(row.name)}</p>
+              ${tagsHtml}
+            </div>
+          </div>`;
+      }).join("");
+    }
+
+    // ─── PROMO ─────────────────────────────────────────────────────────────────
+
+    async function loadPromoSlides() {
+      const controller = new AbortController();
+      const timeoutId  = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
+      try {
+        const res = await fetch(`promo/promo.json?ts=${Date.now()}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        if (!res.ok) return [];
         const list = await res.json();
         return Array.isArray(list) ? list : [];
-      }catch(e){
-        console.error("promo load failed", e);
+      } catch (e) {
+        clearTimeout(timeoutId);
+        console.warn("promo.json load failed:", e.message ?? e);
         return [];
       }
     }
 
-    function preloadImages(slides){
-      if (promoPreloaded) return;
-      promoPreloaded = true;
-
-      for (const src of slides){
+    function preloadImages(slides) {
+      for (const src of slides) {
         const im = new Image();
-        im.src = `${src}?ts=${Date.now()}`;
+        im.src = src;
       }
     }
 
-    async function prefetchPromo(){
+    async function prefetchPromo() {
+      // FIX: één gedeelde Promise zodat gelijktijdige aanroepen niet botsen
       if (promoPrefetchPromise) return promoPrefetchPromise;
 
       promoPrefetchPromise = (async () => {
-        promoSlides = await loadPromoSlides();
-        if (promoSlides.length){
-          preloadImages(promoSlides);
+        const slides = await loadPromoSlides();
+        promoSlides  = slides;
 
-          // Zet de eerste alvast klaar (vermijdt zwart flitsje bij switch)
-          const img = document.getElementById("promoImg");
-          if (img && !img.src){
-            img.src = `${promoSlides[0]}?ts=${Date.now()}`;
-          }
+        if (!slides.length) return slides;
+
+        // Preload alle afbeeldingen op de achtergrond
+        preloadImages(slides);
+
+        // FIX: zet slide 0 alvast in de img om het zwarte flitsje te vermijden,
+        // maar markeer dit zodat de slideshow bij index 1 begint (geen dubbele slide 0).
+        const img = document.getElementById("promoImg");
+        if (img && !img.getAttribute("data-promo-init")) {
+          img.src = slides[0];
+          img.setAttribute("data-promo-init", "1");
+          promoIndex = slides.length > 1 ? 1 : 0;
         }
-        return promoSlides;
+
+        return slides;
       })();
 
       return promoPrefetchPromise;
     }
 
-    function stopPromoSlideshow(){
+    function stopPromoSlideshow() {
       promoRunning = false;
-      if (promoTimer) {
-        clearTimeout(promoTimer);
-        promoTimer = null;
-      }
+      if (promoTimer) { clearTimeout(promoTimer); promoTimer = null; }
     }
 
-    async function startPromoSlideshow(){
+    async function startPromoSlideshow() {
       if (promoRunning) return;
       promoRunning = true;
 
-      promoSlides = await prefetchPromo();
-      if (!promoSlides.length) return;
+      // Wacht op eventuele lopende prefetch
+      await prefetchPromo();
+
+      if (!promoSlides.length) { promoRunning = false; return; }
 
       const img = document.getElementById("promoImg");
-      if (!img) return;
+      if (!img) { promoRunning = false; return; }
 
-      function step(){
+      function step() {
         if (!promoRunning) return;
 
-        const src = promoSlides[promoIndex];
-        img.src = `${src}?ts=${Date.now()}`;
+        // FIX: valideer index voor het geval promoSlides ondertussen gewijzigd is
+        if (promoIndex >= promoSlides.length) promoIndex = 0;
 
+        img.src    = promoSlides[promoIndex];
         promoIndex = (promoIndex + 1) % promoSlides.length;
+
         promoTimer = setTimeout(step, PROMO_SLIDE_MS);
       }
 
       step();
     }
 
-    /***********************
-     * MAIN REFRESH LOOP
-     ***********************/
-    async function refreshAll() {
-      const today = nowInBrussels();
-      document.getElementById("todayLabel").textContent = formatTodayLabel(today);
-      document.getElementById("todayLabelAgenda").textContent = formatTodayLabel(today);
+    // ─── HOOFD-REFRESH ─────────────────────────────────────────────────────────
 
+    async function refreshAll() {
+      const today   = nowInBrussels();
       const dateISO = todayISO();
+
+      document.getElementById("todayLabel").textContent       = formatTodayLabel(today);
+      document.getElementById("todayLabelAgenda").textContent = formatTodayLabel(today);
 
       const planningItems = await fetchArray(
         ENDPOINT_PLANNING,
-        (d)=>{ lastGoodPlanning = d; },
-        ()=>lastGoodPlanning
+        d => { lastGoodPlanning = d; },
+        ()  => lastGoodPlanning
       );
-
-      roomsAll = computeRoomPlan(planningItems, dateISO);
+      roomsAll      = computeRoomPlan(planningItems, dateISO);
       roomPageIndex = 0;
       renderRoomPage();
       startRoomPagination();
 
       const agendaItems = await fetchArray(
         ENDPOINT_AGENDA,
-        (d)=>{ lastGoodAgenda = d; },
-        ()=>lastGoodAgenda
+        d => { lastGoodAgenda = d; },
+        ()  => lastGoodAgenda
       );
       renderAgenda(agendaItems);
 
-      // Promo alvast klaarzetten / pre-loaden
+      // Promo alvast klaarzetten (geen await — loopt op achtergrond)
       prefetchPromo();
     }
 
-    /***********************
-     * MAIN SCREEN ROTATION
-     ***********************/
-    function setActiveScreen(id){
-      screens.forEach(s => document.getElementById(s).classList.toggle("active", s === id));
+    // ─── SCHERMROTATIE ─────────────────────────────────────────────────────────
 
-      // op agenda al zeker preload doen (extra veilig)
+    function setActiveScreen(id) {
+      screens.forEach(s =>
+        document.getElementById(s).classList.toggle("active", s === id)
+      );
       if (id === "screen-agenda") prefetchPromo();
-
       if (id === "screen-promo") startPromoSlideshow();
       else stopPromoSlideshow();
     }
 
-    function initMainRotation(){
+    function initMainRotation() {
       if (!ENABLE_MAIN_ROTATION) return;
       let idx = 0;
       setActiveScreen(screens[idx]);
 
-      function step(){
+      // FIX: setInterval in plaats van recursieve setTimeout om timer-drift
+      // over langere periodes (uren/dagen) te vermijden
+      setInterval(() => {
         idx = (idx + 1) % screens.length;
         setActiveScreen(screens[idx]);
-        setTimeout(step, MAINSCREEN_MS);
-      }
-      setTimeout(step, MAINSCREEN_MS);
+      }, MAINSCREEN_MS);
     }
 
-    /***********************
-     * NIGHTLY HARD REFRESH
-     ***********************/
+    // ─── NACHTELIJKE RELOAD ────────────────────────────────────────────────────
+
     function scheduleNightReload() {
-      const now = new Date();
+      const now    = new Date();
       const reload = new Date();
-
-      reload.setHours(4, 0, 0, 0);
+      reload.setHours(NIGHT_RELOAD_H, 0, 0, 0);
       if (reload <= now) reload.setDate(reload.getDate() + 1);
-
-      setTimeout(() => location.reload(true), reload.getTime() - now.getTime());
+      // FIX: location.reload() zonder argument (true is deprecated in moderne browsers)
+      setTimeout(() => location.reload(), reload.getTime() - now.getTime());
     }
 
-    // init
+    // ─── OPSTARTEN ─────────────────────────────────────────────────────────────
+
     setScaleToFit();
     window.addEventListener("resize", setScaleToFit);
-    scheduleNightReload();
 
+    scheduleNightReload();
+    prefetchPromo();              // promo alvast laden vóór rotatie start
     refreshAll();
     setInterval(refreshAll, REFRESH_MS);
-
-    // start preload meteen bij opstart
-    prefetchPromo();
-
     initMainRotation();
   </script>
 </body>
