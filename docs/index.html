@@ -646,7 +646,7 @@
 
     function agendaFilterAndSort(items) {
       const startISO = todayISO();
-      const endISO   = addDaysISO(startISO, 56);  // 8 weken
+      const endISO   = addDaysISO(startISO, 365); // kijk maximaal 1 jaar vooruit
 
       return items
         .filter(it => {
@@ -675,15 +675,21 @@
     }
 
     function renderAgenda(items) {
+      const wrap     = document.querySelector(".agenda-wrap");
       const list     = document.getElementById("agendaList");
       const filtered = agendaFilterAndSort(items);
 
       if (!filtered.length) {
-        list.innerHTML = `<div class="agenda-empty">Geen voorstellingen in de komende 4 weken.</div>`;
+        list.innerHTML = `<div class="agenda-empty">Geen komende voorstellingen gevonden.</div>`;
         return;
       }
 
-      list.innerHTML = filtered.slice(0, 16).map((row, i) => {
+      // Vul de beschikbare hoogte dynamisch. Zo staat er altijd het maximaal
+      // mogelijke aantal voorstellingen op één agenda-pagina, ongeacht titel-lengte.
+      list.innerHTML = "";
+
+      for (let i = 0; i < filtered.length; i++) {
+        const row = filtered[i];
         const tags = [
           ...row.genres.map(g => g.toUpperCase()),
           ...(row.zaal ? [row.zaal.toUpperCase()] : []),
@@ -691,7 +697,8 @@
         const tagsHtml = tags.length
           ? `<div class="agenda-meta">${tags.map(t => `<span class="agenda-tag">${escapeHtml(t)}</span>`).join("")}</div>`
           : "";
-        return `
+
+        list.insertAdjacentHTML("beforeend", `
           <div class="agenda-row ${i % 2 === 1 ? "alt" : ""}">
             <p class="agenda-date">${escapeHtml(row.dateLabel)}</p>
             <p class="agenda-time">${escapeHtml(row.startTime)}</p>
@@ -699,8 +706,14 @@
               <p class="agenda-title">${escapeHtml(row.name)}</p>
               ${tagsHtml}
             </div>
-          </div>`;
-      }).join("");
+          </div>`);
+
+        // Zodra de nieuwste rij buiten het zichtbare kader valt, verwijderen we die weer.
+        if (list.scrollHeight > wrap.clientHeight) {
+          list.lastElementChild?.remove();
+          break;
+        }
+      }
     }
 
     // ─── PROMO ─────────────────────────────────────────────────────────────────
