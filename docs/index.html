@@ -346,7 +346,7 @@
     const ROOMS_PER_VIEW   = 6;
     const REFRESH_MS       = 2 * 60 * 1000;  // data hertrekken
     const ROOMPAGE_MS      = 12 * 1000;       // zaalrotatie
-    const MAINSCREEN_MS    = 20 * 1000;       // schermrotatie
+    const MAINSCREEN_MS    = 20 * 1000;       // duur zaalplanning / agenda
     const PROMO_SLIDE_MS   = 10 * 1000;       // duur per promo-slide
     const FETCH_TIMEOUT_MS = 8 * 1000;        // max wachttijd op server
     const NIGHT_RELOAD_H   = 4;               // uur voor nachtelijke reload
@@ -382,10 +382,8 @@
     let roomPageTimer = null;
 
     let promoSlides          = [];
-    let promoIndex           = 0;
-    let promoTimer           = null;
-    let promoRunning         = false;
     let promoPrefetchPromise = null;
+    let mainRotationTimer    = null;
 
     // ─── SCHAAL ────────────────────────────────────────────────────────────────
 
@@ -707,6 +705,20 @@
 
     // ─── PROMO ─────────────────────────────────────────────────────────────────
 
+    function promoIsActive(src, dateISO = todayISO()) {
+      // Bestandsnaam: YYYY-MM-DD_YYYY-MM-DD_titel.png
+      // Start- en einddatum zijn inclusief.
+      const filename = String(src || "").split("/").pop() || "";
+      const match = filename.match(/^(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})_.+\.(png|jpe?g|webp|gif)$/i);
+      if (!match) {
+        console.warn("Promo overgeslagen: ongeldige bestandsnaam", filename);
+        return false;
+      }
+
+      const [, startISO, endISO] = match;
+      return dateISO >= startISO && dateISO <= endISO;
+    }
+
     async function loadPromoSlides() {
       const controller = new AbortController();
       const timeoutId  = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
@@ -717,8 +729,12 @@
         });
         clearTimeout(timeoutId);
         if (!res.ok) return [];
+
         const list = await res.json();
-        return Array.isArray(list) ? list : [];
+        if (!Array.isArray(list)) return [];
+
+        const dateISO = todayISO();
+        return list.filter(src => promoIsActive(src, dateISO));
       } catch (e) {
         clearTimeout(timeoutId);
         console.warn("promo.json load failed:", e.message ?? e);
@@ -733,64 +749,19 @@
       }
     }
 
-    async function prefetchPromo() {
-      // FIX: één gedeelde Promise zodat gelijktijdige aanroepen niet botsen
+    async function prefetchPromo(force = false) {
+      // Bij elke datarefresh mag promo.json opnieuw worden ingelezen.
+      if (force) promoPrefetchPromise = null;
       if (promoPrefetchPromise) return promoPrefetchPromise;
 
       promoPrefetchPromise = (async () => {
         const slides = await loadPromoSlides();
-        promoSlides  = slides;
-
-        if (!slides.length) return slides;
-
-        // Preload alle afbeeldingen op de achtergrond
+        promoSlides = slides;
         preloadImages(slides);
-
-        // FIX: zet slide 0 alvast in de img om het zwarte flitsje te vermijden,
-        // maar markeer dit zodat de slideshow bij index 1 begint (geen dubbele slide 0).
-        const img = document.getElementById("promoImg");
-        if (img && !img.getAttribute("data-promo-init")) {
-          img.src = slides[0];
-          img.setAttribute("data-promo-init", "1");
-          promoIndex = slides.length > 1 ? 1 : 0;
-        }
-
         return slides;
       })();
 
       return promoPrefetchPromise;
-    }
-
-    function stopPromoSlideshow() {
-      promoRunning = false;
-      if (promoTimer) { clearTimeout(promoTimer); promoTimer = null; }
-    }
-
-    async function startPromoSlideshow() {
-      if (promoRunning) return;
-      promoRunning = true;
-
-      // Wacht op eventuele lopende prefetch
-      await prefetchPromo();
-
-      if (!promoSlides.length) { promoRunning = false; return; }
-
-      const img = document.getElementById("promoImg");
-      if (!img) { promoRunning = false; return; }
-
-      function step() {
-        if (!promoRunning) return;
-
-        // FIX: valideer index voor het geval promoSlides ondertussen gewijzigd is
-        if (promoIndex >= promoSlides.length) promoIndex = 0;
-
-        img.src    = promoSlides[promoIndex];
-        promoIndex = (promoIndex + 1) % promoSlides.length;
-
-        promoTimer = setTimeout(step, PROMO_SLIDE_MS);
-      }
-
-      step();
     }
 
     // ─── HOOFD-REFRESH ─────────────────────────────────────────────────────────
@@ -819,8 +790,8 @@
       );
       renderAgenda(agendaItems);
 
-      // Promo alvast klaarzetten (geen await — loopt op achtergrond)
-      prefetchPromo();
+      // Promo opnieuw inlezen en alvast klaarzetten (loopt op achtergrond)
+      prefetchPromo(true);
     }
 
     // ─── SCHERMROTATIE ─────────────────────────────────────────────────────────
@@ -829,22 +800,61 @@
       screens.forEach(s =>
         document.getElementById(s).classList.toggle("active", s === id)
       );
-      if (id === "screen-agenda") prefetchPromo();
-      if (id === "screen-promo") startPromoSlideshow();
-      else stopPromoSlideshow();
+    }
+
+    function scheduleMainRotation(fn, delay) {
+      if (mainRotationTimer) clearTimeout(mainRotationTimer);
+      mainRotationTimer = setTimeout(fn, delay);
+    }
+
+    function showPlanningScreen() {
+      setActiveScreen("screen-planning");
+      scheduleMainRotation(showAgendaScreen, MAINSCREEN_MS);
+    }
+
+    function showAgendaScreen() {
+      setActiveScreen("screen-agenda");
+      // Promo's zijn normaal al geprefetcht; deze call gebruikt dezelfde Promise.
+      prefetchPromo();
+      scheduleMainRotation(showPromoSequence, MAINSCREEN_MS);
+    }
+
+    async function showPromoSequence() {
+      await prefetchPromo();
+
+      // Neem een snapshot zodat een refresh midden in de reeks niets verspringt.
+      const slides = [...promoSlides];
+      if (!slides.length) {
+        showPlanningScreen();
+        return;
+      }
+
+      const img = document.getElementById("promoImg");
+      if (!img) {
+        showPlanningScreen();
+        return;
+      }
+
+      setActiveScreen("screen-promo");
+      let index = 0;
+
+      function showNextPromo() {
+        img.src = slides[index];
+        index += 1;
+
+        if (index >= slides.length) {
+          scheduleMainRotation(showPlanningScreen, PROMO_SLIDE_MS);
+        } else {
+          scheduleMainRotation(showNextPromo, PROMO_SLIDE_MS);
+        }
+      }
+
+      showNextPromo();
     }
 
     function initMainRotation() {
       if (!ENABLE_MAIN_ROTATION) return;
-      let idx = 0;
-      setActiveScreen(screens[idx]);
-
-      // FIX: setInterval in plaats van recursieve setTimeout om timer-drift
-      // over langere periodes (uren/dagen) te vermijden
-      setInterval(() => {
-        idx = (idx + 1) % screens.length;
-        setActiveScreen(screens[idx]);
-      }, MAINSCREEN_MS);
+      showPlanningScreen();
     }
 
     // ─── NACHTELIJKE RELOAD ────────────────────────────────────────────────────
@@ -864,8 +874,7 @@
     window.addEventListener("resize", setScaleToFit);
 
     scheduleNightReload();
-    prefetchPromo();              // promo alvast laden vóór rotatie start
-    refreshAll();
+    refreshAll();                 // laadt ook promo alvast op de achtergrond
     setInterval(refreshAll, REFRESH_MS);
     initMainRotation();
   </script>
