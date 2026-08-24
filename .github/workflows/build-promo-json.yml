@@ -1,4 +1,6 @@
-name: Build promo.json
+from pathlib import Path
+
+content = """name: Build promo.json
 
 on:
   push:
@@ -24,12 +26,52 @@ jobs:
 
           const promoDir = path.join(process.cwd(), 'docs', 'promo');
           const exts = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.mp4', '.webm']);
+          const videoExts = new Set(['.mp4', '.webm']);
+
+          function promoParts(name) {
+            const match = name.match(/^(\\d{4}-\\d{2}-\\d{2})_(\\d{4}-\\d{2}-\\d{2})_(.+)\\.([^.]+)$/i);
+            if (!match) {
+              return {
+                end: '9999-12-31',
+                title: name,
+                isVideo: videoExts.has(path.extname(name).toLowerCase())
+              };
+            }
+
+            return {
+              end: match[2],
+              title: match[3],
+              isVideo: videoExts.has(path.extname(name).toLowerCase())
+            };
+          }
 
           const files = fs.readdirSync(promoDir, { withFileTypes: true })
             .filter(d => d.isFile())
             .map(d => d.name)
             .filter(name => exts.has(path.extname(name).toLowerCase()))
-            .sort((a,b) => a.localeCompare(b, 'en', { numeric: true, sensitivity: 'base' }))
+            .sort((a, b) => {
+              const A = promoParts(a);
+              const B = promoParts(b);
+
+              // 1. Eerstvolgende voorstellings-/einddatum eerst
+              const byEnd = A.end.localeCompare(B.end);
+              if (byEnd) return byEnd;
+
+              // 2. Zelfde datum: groepeer dezelfde voorstelling/titel
+              const byTitle = A.title.localeCompare(B.title, 'nl', {
+                numeric: true,
+                sensitivity: 'base'
+              });
+              if (byTitle) return byTitle;
+
+              // 3. Zelfde titel: afbeelding vóór video
+              if (A.isVideo !== B.isVideo) return A.isVideo ? 1 : -1;
+
+              return a.localeCompare(b, 'nl', {
+                numeric: true,
+                sensitivity: 'base'
+              });
+            })
             .map(name => `promo/${name}`);
 
           fs.writeFileSync(
@@ -45,3 +87,8 @@ jobs:
           git add docs/promo/promo.json
           git diff --cached --quiet || git commit -m "update promo.json"
           git push
+"""
+
+out = Path("/mnt/data/build-promo-json-sorted.yml")
+out.write_text(content, encoding="utf-8")
+print(f"Klaar: {out.name}")
