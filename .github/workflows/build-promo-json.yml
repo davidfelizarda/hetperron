@@ -23,7 +23,7 @@ jobs:
           const path = require('path');
 
           const promoDir = path.join(process.cwd(), 'docs', 'promo');
-          const exts = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif']);
+          const exts = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.mp4', '.webm']);
 
           const files = fs.readdirSync(promoDir, { withFileTypes: true })
             .filter(d => d.isFile())
