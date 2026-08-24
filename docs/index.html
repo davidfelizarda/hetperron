@@ -285,14 +285,37 @@
       padding:0 !important;
       background:#000;
       position:relative;
+      overflow:hidden;
     }
-    #promoImg{
+
+    .promo-media{
       position:absolute;
       inset:0;
       width:100%;
       height:100%;
+      display:none;
+    }
+
+    .promo-media.active{ display:block; }
+
+    .promo-backdrop{
       object-fit:cover;
-      display:block;
+      transform:scale(1.10);
+      filter:blur(42px) brightness(.55);
+      opacity:.95;
+    }
+
+    .promo-foreground{
+      object-fit:cover;
+      z-index:2;
+    }
+
+    #screen-promo.contain .promo-foreground{
+      object-fit:contain;
+    }
+
+    #screen-promo.cover .promo-backdrop{
+      display:none !important;
     }
   </style>
 </head>
@@ -330,7 +353,10 @@
     </section>
 
     <section class="screen" id="screen-promo">
-      <img id="promoImg" alt="" />
+      <img id="promoBackdropImg" class="promo-media promo-backdrop" alt="" aria-hidden="true" />
+      <video id="promoBackdropVideo" class="promo-media promo-backdrop" muted playsinline preload="metadata" aria-hidden="true"></video>
+      <img id="promoImg" class="promo-media promo-foreground" alt="" />
+      <video id="promoVideo" class="promo-media promo-foreground" muted playsinline preload="auto"></video>
     </section>
 
   </div>
@@ -733,7 +759,7 @@
       // Bestandsnaam: YYYY-MM-DD_YYYY-MM-DD_titel.png
       // Start- en einddatum zijn inclusief.
       const filename = String(src || "").split("/").pop() || "";
-      const match = filename.match(/^(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})_.+\.(png|jpe?g|webp|gif)$/i);
+      const match = filename.match(/^(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})_.+\.(png|jpe?g|webp|gif|mp4|webm)$/i);
       if (!match) {
         console.warn("Promo overgeslagen: ongeldige bestandsnaam", filename);
         return false;
@@ -766,10 +792,21 @@
       }
     }
 
-    function preloadImages(slides) {
+    function isVideoPromo(src) {
+      return /\.(mp4|webm)$/i.test(String(src || ""));
+    }
+
+    function preloadPromoMedia(slides) {
       for (const src of slides) {
-        const im = new Image();
-        im.src = src;
+        if (isVideoPromo(src)) {
+          const v = document.createElement("video");
+          v.preload = "metadata";
+          v.muted = true;
+          v.src = src;
+        } else {
+          const im = new Image();
+          im.src = src;
+        }
       }
     }
 
@@ -781,7 +818,7 @@
       promoPrefetchPromise = (async () => {
         const slides = await loadPromoSlides();
         promoSlides = slides;
-        preloadImages(slides);
+        preloadPromoMedia(slides);
         return slides;
       })();
 
@@ -860,24 +897,115 @@
         return;
       }
 
-      const img = document.getElementById("promoImg");
-      if (!img) {
+      const screen   = document.getElementById("screen-promo");
+      const img      = document.getElementById("promoImg");
+      const bgImg    = document.getElementById("promoBackdropImg");
+      const video    = document.getElementById("promoVideo");
+      const bgVideo  = document.getElementById("promoBackdropVideo");
+
+      if (!screen || !img || !bgImg || !video || !bgVideo) {
         showPlanningScreen();
         return;
       }
 
       setActiveScreen("screen-promo");
       let index = 0;
+      let fallbackTimer = null;
+
+      function clearFallback() {
+        if (fallbackTimer) {
+          clearTimeout(fallbackTimer);
+          fallbackTimer = null;
+        }
+      }
+
+      function hideAllPromoMedia() {
+        clearFallback();
+        img.classList.remove("active");
+        bgImg.classList.remove("active");
+        video.classList.remove("active");
+        bgVideo.classList.remove("active");
+
+        video.pause();
+        bgVideo.pause();
+        video.removeAttribute("src");
+        bgVideo.removeAttribute("src");
+        video.load();
+        bgVideo.load();
+      }
+
+      function setPromoLayout(width, height) {
+        const ratio = width > 0 && height > 0 ? width / height : 9 / 16;
+        const target = 9 / 16;
+        const isNineSixteen = Math.abs(ratio - target) <= 0.04;
+
+        screen.classList.toggle("cover", isNineSixteen);
+        screen.classList.toggle("contain", !isNineSixteen);
+      }
+
+      function finishCurrentPromo() {
+        hideAllPromoMedia();
+        if (index >= slides.length) {
+          showPlanningScreen();
+        } else {
+          showNextPromo();
+        }
+      }
+
+      function showImage(src) {
+        bgImg.src = src;
+        img.src = src;
+
+        img.onload = () => {
+          setPromoLayout(img.naturalWidth, img.naturalHeight);
+          img.classList.add("active");
+          if (screen.classList.contains("contain")) bgImg.classList.add("active");
+        };
+
+        img.onerror = () => finishCurrentPromo();
+        fallbackTimer = setTimeout(finishCurrentPromo, PROMO_SLIDE_MS);
+      }
+
+      function showVideo(src) {
+        video.src = src;
+        bgVideo.src = src;
+        video.muted = true;
+        bgVideo.muted = true;
+        video.currentTime = 0;
+        bgVideo.currentTime = 0;
+
+        const startPlayback = async () => {
+          setPromoLayout(video.videoWidth, video.videoHeight);
+          video.classList.add("active");
+
+          if (screen.classList.contains("contain")) {
+            bgVideo.classList.add("active");
+            try { await bgVideo.play(); } catch (e) { console.warn("Backdrop video autoplay failed:", e); }
+          }
+
+          try {
+            await video.play();
+          } catch (e) {
+            console.warn("Promo video autoplay failed:", e);
+            finishCurrentPromo();
+          }
+        };
+
+        video.onloadedmetadata = startPlayback;
+        video.onended = finishCurrentPromo;
+        video.onerror = finishCurrentPromo;
+
+        // Veiligheidsnet voor corrupte of vastgelopen trailers.
+        fallbackTimer = setTimeout(finishCurrentPromo, 5 * 60 * 1000);
+      }
 
       function showNextPromo() {
-        img.src = slides[index];
+        hideAllPromoMedia();
+        const src = slides[index];
         index += 1;
 
-        if (index >= slides.length) {
-          scheduleMainRotation(showPlanningScreen, PROMO_SLIDE_MS);
-        } else {
-          scheduleMainRotation(showNextPromo, PROMO_SLIDE_MS);
-        }
+        if (isVideoPromo(src)) showVideo(src);
+        else showImage(src);
       }
 
       showNextPromo();
