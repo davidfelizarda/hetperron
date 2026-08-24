@@ -716,6 +716,17 @@
       }
     }
 
+    function trimAgendaToFit() {
+      const wrap = document.querySelector(".agenda-wrap");
+      const list = document.getElementById("agendaList");
+      if (!wrap || !list || wrap.clientHeight <= 0) return;
+
+      // Verwijder onderaan alle rijen die niet volledig binnen het zichtbare kader passen.
+      while (list.lastElementChild && list.scrollHeight > wrap.clientHeight) {
+        list.lastElementChild.remove();
+      }
+    }
+
     // ─── PROMO ─────────────────────────────────────────────────────────────────
 
     function promoIsActive(src, dateISO = todayISO()) {
@@ -827,6 +838,13 @@
 
     function showAgendaScreen() {
       setActiveScreen("screen-agenda");
+
+      // De agenda wordt vaak opgebouwd terwijl het scherm nog verborgen is.
+      // Meet daarom pas na het zichtbaar maken en snij exact af na de laatste volledige rij.
+      requestAnimationFrame(() => {
+        requestAnimationFrame(trimAgendaToFit);
+      });
+
       // Promo's zijn normaal al geprefetcht; deze call gebruikt dezelfde Promise.
       prefetchPromo();
       scheduleMainRotation(showPromoSequence, MAINSCREEN_MS);
