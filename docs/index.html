@@ -631,10 +631,15 @@
       pageLabel.textContent = totalPages > 1 ? `Pagina ${roomPageIndex + 1}/${totalPages}` : "";
     }
 
+    function stopRoomPagination() {
+      if (roomPageTimer) {
+        clearInterval(roomPageTimer);
+        roomPageTimer = null;
+      }
+    }
+
     function startRoomPagination() {
-      // FIX: stop altijd de vorige timer zodat er geen dubbele intervals opstapelen
-      // bij elke 2-minuten refresh
-      if (roomPageTimer) { clearInterval(roomPageTimer); roomPageTimer = null; }
+      stopRoomPagination();
 
       const totalPages = Math.ceil(roomsAll.length / ROOMS_PER_VIEW);
       if (totalPages <= 1) return;
@@ -842,7 +847,9 @@
       roomsAll      = computeRoomPlan(planningItems, dateISO);
       roomPageIndex = 0;
       renderRoomPage();
-      startRoomPagination();
+      if (document.getElementById("screen-planning")?.classList.contains("active")) {
+        startRoomPagination();
+      }
 
       const agendaItems = await fetchArray(
         ENDPOINT_AGENDA,
@@ -869,11 +876,18 @@
     }
 
     function showPlanningScreen() {
+      // Elke nieuwe hoofdcyclus begint opnieuw op zaalplanning pagina 1.
+      stopRoomPagination();
+      roomPageIndex = 0;
+      renderRoomPage();
       setActiveScreen("screen-planning");
+      startRoomPagination();
       scheduleMainRotation(showAgendaScreen, MAINSCREEN_MS);
     }
 
     function showAgendaScreen() {
+      // Laat de zaalpagina niet verder tellen terwijl ze verborgen is.
+      stopRoomPagination();
       setActiveScreen("screen-agenda");
 
       // De agenda wordt vaak opgebouwd terwijl het scherm nog verborgen is.
