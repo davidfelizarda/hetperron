@@ -1,6 +1,4 @@
-from pathlib import Path
-
-content = """name: Build promo.json
+name: Build promo.json
 
 on:
   push:
@@ -15,12 +13,15 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
       - name: Generate promo.json
+        shell: bash
         run: |
-          node - <<'NODE'
+          node <<'NODE'
           const fs = require('fs');
           const path = require('path');
 
@@ -29,7 +30,8 @@ jobs:
           const videoExts = new Set(['.mp4', '.webm']);
 
           function promoParts(name) {
-            const match = name.match(/^(\\d{4}-\\d{2}-\\d{2})_(\\d{4}-\\d{2}-\\d{2})_(.+)\\.([^.]+)$/i);
+            const match = name.match(/^(\d{4}-\d{2}-\d{2})_(\d{4}-\d{2}-\d{2})_(.+)\.([^.]+)$/i);
+
             if (!match) {
               return {
                 end: '9999-12-31',
@@ -53,18 +55,15 @@ jobs:
               const A = promoParts(a);
               const B = promoParts(b);
 
-              // 1. Eerstvolgende voorstellings-/einddatum eerst
               const byEnd = A.end.localeCompare(B.end);
               if (byEnd) return byEnd;
 
-              // 2. Zelfde datum: groepeer dezelfde voorstelling/titel
               const byTitle = A.title.localeCompare(B.title, 'nl', {
                 numeric: true,
                 sensitivity: 'base'
               });
               if (byTitle) return byTitle;
 
-              // 3. Zelfde titel: afbeelding vóór video
               if (A.isVideo !== B.isVideo) return A.isVideo ? 1 : -1;
 
               return a.localeCompare(b, 'nl', {
@@ -76,19 +75,21 @@ jobs:
 
           fs.writeFileSync(
             path.join(promoDir, 'promo.json'),
-            JSON.stringify(files, null, 2)
+            JSON.stringify(files, null, 2) + '\n'
           );
           NODE
 
       - name: Commit promo.json if changed
+        shell: bash
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add docs/promo/promo.json
-          git diff --cached --quiet || git commit -m "update promo.json"
-          git push
-"""
 
-out = Path("/mnt/data/build-promo-json-sorted.yml")
-out.write_text(content, encoding="utf-8")
-print(f"Klaar: {out.name}")
+          if git diff --cached --quiet; then
+            echo "promo.json is already up to date"
+            exit 0
+          fi
+
+          git commit -m "update promo.json"
+          git push
