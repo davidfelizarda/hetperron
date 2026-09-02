@@ -374,6 +374,8 @@
     const ROOMPAGE_MS      = 12 * 1000;       // zaalrotatie
     const MAINSCREEN_MS    = 20 * 1000;       // duur zaalplanning / agenda
     const PROMO_SLIDE_MS   = 10 * 1000;       // duur per promo-slide
+    const PROMOS_PER_BLOCK = 2;               // na elke 2 promo's opnieuw zaalplanning
+    const WATCHDOG_MS      = 1000;            // robuuste timercheck voor Android/WebView
     const FETCH_TIMEOUT_MS = 8 * 1000;        // max wachttijd op server
     const NIGHT_RELOAD_H   = 4;               // uur voor nachtelijke reload
 
@@ -409,7 +411,16 @@
 
     let promoSlides          = [];
     let promoPrefetchPromise = null;
-    let mainRotationTimer    = null;
+    let promoCursor          = 0;
+    let planningNext         = "agenda";
+
+    // Deadline-gebaseerde timers. De watchdog vergelijkt altijd met Date.now(),
+    // zodat een vertraagde of gemiste setTimeout in Android TV/WebView de loop
+    // niet permanent kan laten vastlopen.
+    let mainDeadline   = 0;
+    let mainNextFn     = null;
+    let promoDeadline  = 0;
+    let promoNextFn    = null;
 
     // ─── SCHAAL ────────────────────────────────────────────────────────────────
 
@@ -862,7 +873,7 @@
       prefetchPromo(true);
     }
 
-    // ─── SCHERMROTATIE ─────────────────────────────────────────────────────────
+    // ─── SCHERMROTATIE / ROBUUSTE LOOP ─────────────────────────────────────────
 
     function setActiveScreen(id) {
       screens.forEach(s =>
@@ -870,22 +881,86 @@
       );
     }
 
-    function scheduleMainRotation(fn, delay) {
-      if (mainRotationTimer) clearTimeout(mainRotationTimer);
-      mainRotationTimer = setTimeout(fn, delay);
+    function clearMainSchedule() {
+      mainDeadline = 0;
+      mainNextFn = null;
     }
 
-    function showPlanningScreen() {
-      // Elke nieuwe hoofdcyclus begint opnieuw op zaalplanning pagina 1.
+    function scheduleMainRotation(fn, delay) {
+      mainNextFn = fn;
+      mainDeadline = Date.now() + delay;
+    }
+
+    function clearPromoSchedule() {
+      promoDeadline = 0;
+      promoNextFn = null;
+    }
+
+    function schedulePromoAdvance(fn, delay) {
+      promoNextFn = fn;
+      promoDeadline = Date.now() + delay;
+    }
+
+    function checkReliableTimers() {
+      const now = Date.now();
+
+      if (mainNextFn && mainDeadline && now >= mainDeadline) {
+        const fn = mainNextFn;
+        clearMainSchedule(); // eerst wissen om dubbele overgang te voorkomen
+        try {
+          fn();
+        } catch (e) {
+          console.error("Hoofdrotatie fout:", e);
+          showPlanningScreen("agenda");
+        }
+      }
+
+      if (promoNextFn && promoDeadline && now >= promoDeadline) {
+        const fn = promoNextFn;
+        clearPromoSchedule();
+        try {
+          fn();
+        } catch (e) {
+          console.error("Promo-rotatie fout:", e);
+          showPlanningScreen("agenda");
+        }
+      }
+    }
+
+    function startRotationWatchdog() {
+      setInterval(checkReliableTimers, WATCHDOG_MS);
+
+      // Extra checks wanneer Android/WebView opnieuw actief wordt.
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) checkReliableTimers();
+      });
+      window.addEventListener("focus", checkReliableTimers);
+      window.addEventListener("pageshow", checkReliableTimers);
+    }
+
+    function showPlanningScreen(nextTarget = "agenda") {
+      clearMainSchedule();
+      clearPromoSchedule();
+
+      planningNext = nextTarget === "promo" ? "promo" : "agenda";
+
+      // Elke terugkeer naar zaalplanning begint opnieuw op pagina 1.
       stopRoomPagination();
       roomPageIndex = 0;
       renderRoomPage();
       setActiveScreen("screen-planning");
       startRoomPagination();
-      scheduleMainRotation(showAgendaScreen, MAINSCREEN_MS);
+
+      scheduleMainRotation(
+        planningNext === "promo" ? showPromoBlock : showAgendaScreen,
+        MAINSCREEN_MS
+      );
     }
 
     function showAgendaScreen() {
+      clearMainSchedule();
+      clearPromoSchedule();
+
       // Laat de zaalpagina niet verder tellen terwijl ze verborgen is.
       stopRoomPagination();
       setActiveScreen("screen-agenda");
@@ -898,18 +973,33 @@
 
       // Promo's zijn normaal al geprefetcht; deze call gebruikt dezelfde Promise.
       prefetchPromo();
-      scheduleMainRotation(showPromoSequence, MAINSCREEN_MS);
+
+      // Na de agenda starten we bij de eerstvolgende promo.
+      scheduleMainRotation(showPromoBlock, MAINSCREEN_MS);
     }
 
-    async function showPromoSequence() {
-      await prefetchPromo();
+    async function showPromoBlock() {
+      clearMainSchedule();
+      clearPromoSchedule();
 
-      // Neem een snapshot zodat een refresh midden in de reeks niets verspringt.
+      // Prefetch mag nooit de volledige signage-loop blokkeren.
+      // De normale fetch heeft al een timeout; deze catch is een extra vangnet.
+      try {
+        await prefetchPromo();
+      } catch (e) {
+        console.warn("Promo prefetch mislukt:", e);
+      }
+
+      // Neem een snapshot zodat een refresh midden in het blok niets verspringt.
       const slides = [...promoSlides];
+
       if (!slides.length) {
-        showPlanningScreen();
+        promoCursor = 0;
+        showPlanningScreen("agenda");
         return;
       }
+
+      if (promoCursor >= slides.length) promoCursor = 0;
 
       const screen   = document.getElementById("screen-promo");
       const img      = document.getElementById("promoImg");
@@ -918,23 +1008,24 @@
       const bgVideo  = document.getElementById("promoBackdropVideo");
 
       if (!screen || !img || !bgImg || !video || !bgVideo) {
-        showPlanningScreen();
+        promoCursor = 0;
+        showPlanningScreen("agenda");
         return;
       }
 
       setActiveScreen("screen-promo");
-      let index = 0;
-      let fallbackTimer = null;
-
-      function clearFallback() {
-        if (fallbackTimer) {
-          clearTimeout(fallbackTimer);
-          fallbackTimer = null;
-        }
-      }
+      let shownInBlock = 0;
+      let finishing = false;
 
       function hideAllPromoMedia() {
-        clearFallback();
+        clearPromoSchedule();
+
+        img.onload = null;
+        img.onerror = null;
+        video.onloadedmetadata = null;
+        video.onended = null;
+        video.onerror = null;
+
         img.classList.remove("active");
         bgImg.classList.remove("active");
         video.classList.remove("active");
@@ -958,12 +1049,27 @@
       }
 
       function finishCurrentPromo() {
+        if (finishing) return;
+        finishing = true;
         hideAllPromoMedia();
-        if (index >= slides.length) {
-          showPlanningScreen();
-        } else {
-          showNextPromo();
+
+        const reachedEnd = promoCursor >= slides.length;
+        const blockFull  = shownInBlock >= PROMOS_PER_BLOCK;
+
+        if (reachedEnd || blockFull) {
+          if (reachedEnd) {
+            // Volledige promolijst gehad: na zaalplanning opnieuw Agenda tonen.
+            promoCursor = 0;
+            showPlanningScreen("agenda");
+          } else {
+            // Er zijn nog promo's: eerst opnieuw zaalplanning, daarna volgende blok.
+            showPlanningScreen("promo");
+          }
+          return;
         }
+
+        finishing = false;
+        showNextPromo();
       }
 
       function showImage(src) {
@@ -976,8 +1082,10 @@
           if (screen.classList.contains("contain")) bgImg.classList.add("active");
         };
 
-        img.onerror = () => finishCurrentPromo();
-        fallbackTimer = setTimeout(finishCurrentPromo, PROMO_SLIDE_MS);
+        img.onerror = finishCurrentPromo;
+
+        // Niet afhankelijk van één setTimeout: watchdog controleert deze deadline.
+        schedulePromoAdvance(finishCurrentPromo, PROMO_SLIDE_MS);
       }
 
       function showVideo(src) {
@@ -1010,13 +1118,22 @@
         video.onerror = finishCurrentPromo;
 
         // Veiligheidsnet voor corrupte of vastgelopen trailers.
-        fallbackTimer = setTimeout(finishCurrentPromo, 5 * 60 * 1000);
+        schedulePromoAdvance(finishCurrentPromo, 5 * 60 * 1000);
       }
 
       function showNextPromo() {
         hideAllPromoMedia();
-        const src = slides[index];
-        index += 1;
+
+        if (promoCursor >= slides.length) {
+          promoCursor = 0;
+          showPlanningScreen("agenda");
+          return;
+        }
+
+        const src = slides[promoCursor];
+        promoCursor += 1;
+        shownInBlock += 1;
+        finishing = false;
 
         if (isVideoPromo(src)) showVideo(src);
         else showImage(src);
@@ -1027,7 +1144,8 @@
 
     function initMainRotation() {
       if (!ENABLE_MAIN_ROTATION) return;
-      showPlanningScreen();
+      startRotationWatchdog();
+      showPlanningScreen("agenda");
     }
 
     // ─── NACHTELIJKE RELOAD ────────────────────────────────────────────────────
